@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { Dialog, Transition } from '@headlessui/react';
 import { Heading } from "@/components/ui/Heading";
 import { Button } from "@/components/ui/buttons/Button";
+import {useRouter} from "next/navigation";
+import {DASHBOARD_PAGES} from "@/config/pages-url.config";
 
 export function SuppliesView() {
 
@@ -29,12 +31,13 @@ export function SuppliesView() {
         setSelectedDate(e.target.value ? format(new Date(e.target.value), 'yyyy-MM-dd') : null);
     };
 
-    const mf = {
-        marginLeft: "15%"
+    const router = useRouter();
+
+    const rout = () => {
+        router.push(DASHBOARD_PAGES.SUPPLYVIEW)
     }
-    const f = {
-        display: "flex"
-    }
+
+
 
     return (
         <div>
@@ -57,6 +60,7 @@ export function SuppliesView() {
                             />
                             <Button
                                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300"
+                                onClick={rout}
                             >
                                 Создать поставку
                             </Button>

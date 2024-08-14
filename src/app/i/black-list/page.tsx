@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Heading } from '@/components/ui/Heading'
 
 import { NO_INDEX_PAGE } from '@/constants/seo.constants'
+import {BlacklistView} from "@/app/i/black-list/blacklistView";
 
 
 
@@ -15,6 +16,7 @@ export default function SettingsPage() {
 	return (
 		<div>
 			<Heading title='Черный список' />
+			<BlacklistView/>
 		</div>
 	)
 }

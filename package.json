@@ -34,6 +34,7 @@
     "react-hook-form": "^7.49.3",
     "react-modal": "^3.16.1",
     "react-select": "^5.8.0",
+    "recharts": "^2.12.7",
     "sass": "^1.70.0",
     "sonner": "^1.4.0",
     "tailwind-variants": "^0.1.20"

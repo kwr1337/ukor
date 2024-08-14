@@ -4,10 +4,18 @@ import Loader from '@/components/ui/Loader'
 
 import { useProfile } from '@/hooks/useProfile'
 import {Button} from "@/components/ui/buttons/Button";
+import { useRouter } from "next/navigation";
+import {DASHBOARD_PAGES} from "@/config/pages-url.config";
+
 
 export function Profile() {
 	const { data, isLoading } = useProfile()
 
+	const router = useRouter();
+
+	const rout = () => {
+		router.push(DASHBOARD_PAGES.PROFILE)
+	}
 	return (
 		<div className='absolute top-big-layout right-big-layout'>
 			{isLoading ? (
@@ -23,7 +31,7 @@ export function Profile() {
 					{/*	{data?.user.name?.charAt(0) || 'A'}*/}
 					{/*</div>*/}
 
-					<Button> Профиль</Button>
+					<Button onClick={rout}> Профиль</Button>
 				</div>
 			)}
 		</div>

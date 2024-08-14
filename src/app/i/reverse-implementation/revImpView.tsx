@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { Dialog, Transition } from '@headlessui/react';
 import { Heading } from "@/components/ui/Heading";
 import { Button } from "@/components/ui/buttons/Button";
+import {useRouter} from "next/navigation";
+import {DASHBOARD_PAGES} from "@/config/pages-url.config";
 
 export function RevImpView() {
 
@@ -41,6 +43,12 @@ export function RevImpView() {
     }
     const f = {
         display: "flex"
+    }
+
+    const router = useRouter();
+
+    const rout = () => {
+        router.push(DASHBOARD_PAGES.RETURNORDERVIEW)
     }
 
     return (
@@ -84,10 +92,10 @@ export function RevImpView() {
                                 className="px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white"
                             />
                             <Button
-                                onClick={() => setIsOpen(true)}
+                                onClick={rout}
                                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300"
                             >
-                                Загрузить новый возврат
+                                Зарегистрироват новый возврат
                             </Button>
                         </div>
                     </div>

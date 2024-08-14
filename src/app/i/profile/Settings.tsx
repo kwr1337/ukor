@@ -34,70 +34,70 @@ export function Settings() {
 				className='w-2/4'
 				onSubmit={handleSubmit(onSubmit)}
 			>
-				<div className='grid grid-cols-2 gap-10'>
+				<div className='grid grid-cols-3 gap-10'>
 					<div>
 						<Field
-							id='email'
-							label='Email: '
-							placeholder='Enter email: '
-							type='email'
-							{...register('email', {
-								required: 'Email is required!'
-							})}
+							id='surname'
+							label='Фамилия: '
+							placeholder='Введите фамилию: '
 							extra='mb-4'
 						/>
 
 						<Field
-							id='name'
-							label='Name: '
-							placeholder='Enter name: '
-							{...register('name')}
+							id='post'
+							label='Должность: '
+							placeholder='Введите должность: '
 							extra='mb-4'
 						/>
 
 						<Field
-							id='password'
-							label='Password: '
-							placeholder='Enter password: '
-							type='password'
-							{...register('password')}
+							id='login'
+							label='Логин: '
+							placeholder='Введите логин: '
 							extra='mb-10'
 						/>
 					</div>
 
 					<div>
 						<Field
-							id='workInterval'
-							label='Work interval (min.): '
-							placeholder='Enter work interval (min.): '
-							isNumber
-							{...register('workInterval', {
-								valueAsNumber: true
-							})}
+							id='name'
+							label='Имя: '
+							placeholder='Введите имя: '
 							extra='mb-4'
 						/>
 
 						<Field
-							id='breakInterval'
-							label='Break interval (min.): '
-							placeholder='Enter break interval (min.): '
+							id='phone'
+							label='Телефон:'
+							placeholder='Введите телефон: '
 							isNumber
-							{...register('breakInterval', {
-								valueAsNumber: true
-							})}
 							extra='mb-4'
 						/>
 
 						<Field
-							id='intervalsCount'
-							label='Intervals count (max 10): '
-							placeholder='Enter intervals count (max 10): '
-							isNumber
-							{...register('intervalsCount', {
-								valueAsNumber: true
-							})}
-							extra='mb-6'
+							id='password'
+							label='Пароль: '
+							placeholder='Введите пароль: '
+							type='password'
+							extra='mb-10'
 						/>
+					</div>
+
+					<div>
+						<Field
+							id='otchestvo'
+							label='Отчество: '
+							placeholder='Введите отчество: '
+							extra='mb-4'
+						/>
+
+						<Field
+							id='email'
+							label='Почта:'
+							placeholder='Введите почту: '
+							extra='mb-4'
+						/>
+
 					</div>
 				</div>
 
@@ -105,7 +105,7 @@ export function Settings() {
 					type='submit'
 					disabled={isPending}
 				>
-					Save
+					Сохранить
 				</Button>
 			</form>
 		</div>
