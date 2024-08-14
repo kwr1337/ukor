@@ -8,7 +8,11 @@ export function BlacklistView() {
     const [searchValue, setSearchValue] = useState('');
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-    const initialData = {
+    interface Blacklist {
+        [key: string]: Array<{ nomenclature: string; client: string; dateAdded: string }>;
+    }
+
+    const initialData: Blacklist = {
         emex: [
             { nomenclature: 'U45162534', client: 'emex', dateAdded: '2020-03-03' },
             { nomenclature: 'P45163564', client: 'emex', dateAdded: '2020-03-03' },
@@ -31,10 +35,10 @@ export function BlacklistView() {
         ]
     };
 
-    const [blacklist, setBlacklist] = useState(initialData);
-    const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
+    const [blacklist, setBlacklist] = useState<Blacklist>(initialData);
+    const [expandedFolders, setExpandedFolders] = useState<(keyof Blacklist)[]>([]); // Изменено
 
-    const toggleFolder = (folder: string) => {
+    const toggleFolder = (folder: keyof Blacklist) => { // Изменено
         setExpandedFolders(prev =>
             prev.includes(folder) ? prev.filter(f => f !== folder) : [...prev, folder]
         );
@@ -49,6 +53,7 @@ export function BlacklistView() {
         (!selectedDate || item.dateAdded === selectedDate)
     );
 
+    // @ts-ignore
     return (
         <div>
             <div className="max-w-8xl w-full mx-auto space-y-8">
