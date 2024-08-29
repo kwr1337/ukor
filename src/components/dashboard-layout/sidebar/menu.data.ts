@@ -55,5 +55,9 @@ export const MENU: IMenuItem[] = [
 	{
 		link: DASHBOARD_PAGES.EMPLOYEES,
 		name: 'Сотрудники'
+	},
+	{
+		link: DASHBOARD_PAGES.LEFTOVERS,
+		name: 'Остатки'
 	}
 ]

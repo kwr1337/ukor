@@ -1,4 +1,3 @@
-import {OrderDetailView} from "@/app/i/order-feed/order/OrderDetailView";
 
 class DASHBOARD {
 	private root = '/i'
@@ -16,6 +15,7 @@ class DASHBOARD {
 	REVERS_IMPLEMENTATION = `${this.root}/reverse-implementation`
 	SUMMARY = `${this.root}/summary`
 	SUPPLIES = `${this.root}/supplies`
+	LEFTOVERS = `${this.root}/leftovers`
 
 	PROFILE = `${this.root}/profile`
 
@@ -40,6 +40,8 @@ class DASHBOARD {
 	SUPPLYVIEW = `${this.root}/supplies/supply`
 
 	COUNTERPARTYVIEW = `${this.root}/counterparties/counterparty`
+
+
 
 }
 

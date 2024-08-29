@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react';
-import { format } from 'date-fns';
-import { Button } from "@/components/ui/buttons/Button";
+import React, {useState} from 'react';
+import {format} from 'date-fns';
+import {Button} from "@/components/ui/buttons/Button";
 
 export function BlacklistView() {
     const [searchValue, setSearchValue] = useState('');
@@ -14,24 +14,24 @@ export function BlacklistView() {
 
     const initialData: Blacklist = {
         emex: [
-            { nomenclature: 'U45162534', client: 'emex', dateAdded: '2020-03-03' },
-            { nomenclature: 'P45163564', client: 'emex', dateAdded: '2020-03-03' },
-            { nomenclature: 'U45164564', client: 'emex', dateAdded: '2020-03-03' }
+            {nomenclature: 'U45162534', client: 'emex', dateAdded: '2020-03-03'},
+            {nomenclature: 'P45163564', client: 'emex', dateAdded: '2020-03-03'},
+            {nomenclature: 'U45164564', client: 'emex', dateAdded: '2020-03-03'}
         ],
         exist: [
-            { nomenclature: 'E45162534', client: 'exist', dateAdded: '2021-04-01' },
-            { nomenclature: 'E45163564', client: 'exist', dateAdded: '2021-04-01' },
-            { nomenclature: 'E45164564', client: 'exist', dateAdded: '2021-04-01' }
+            {nomenclature: 'E45162534', client: 'exist', dateAdded: '2021-04-01'},
+            {nomenclature: 'E45163564', client: 'exist', dateAdded: '2021-04-01'},
+            {nomenclature: 'E45164564', client: 'exist', dateAdded: '2021-04-01'}
         ],
         zzap: [
-            { nomenclature: 'Z45162534', client: 'zzap', dateAdded: '2022-05-15' },
-            { nomenclature: 'Z45163564', client: 'zzap', dateAdded: '2022-05-15' },
-            { nomenclature: 'Z45164564', client: 'zzap', dateAdded: '2022-05-15' }
+            {nomenclature: 'Z45162534', client: 'zzap', dateAdded: '2022-05-15'},
+            {nomenclature: 'Z45163564', client: 'zzap', dateAdded: '2022-05-15'},
+            {nomenclature: 'Z45164564', client: 'zzap', dateAdded: '2022-05-15'}
         ],
         autodoc: [
-            { nomenclature: 'A45162534', client: 'autodoc', dateAdded: '2023-06-10' },
-            { nomenclature: 'A45163564', client: 'autodoc', dateAdded: '2023-06-10' },
-            { nomenclature: 'A45164564', client: 'autodoc', dateAdded: '2023-06-10' }
+            {nomenclature: 'A45162534', client: 'autodoc', dateAdded: '2023-06-10'},
+            {nomenclature: 'A45163564', client: 'autodoc', dateAdded: '2023-06-10'},
+            {nomenclature: 'A45164564', client: 'autodoc', dateAdded: '2023-06-10'}
         ]
     };
 
@@ -104,18 +104,20 @@ export function BlacklistView() {
                                         <thead className="bg-gray-700">
                                         <tr>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                                <input type="checkbox" />
+                                                <input type="checkbox"/>
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Номенклатура</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Клиент</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Дата занесения в ЧС</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Дата
+                                                занесения в ЧС
+                                            </th>
                                         </tr>
                                         </thead>
                                         <tbody className="bg-gray-800 divide-y divide-gray-700">
                                         {filteredBlacklist(blacklist[folder]).map((item, index) => (
                                             <tr key={index}>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <input type="checkbox" />
+                                                    <input type="checkbox"/>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{item.nomenclature}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{item.client}</td>

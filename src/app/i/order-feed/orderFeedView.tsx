@@ -1,16 +1,13 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Dialog, Transition } from '@headlessui/react';
-import { Heading } from "@/components/ui/Heading";
 import { Button } from "@/components/ui/buttons/Button";
 import { useRouter } from "next/navigation";
-import {DASHBOARD_PAGES} from "@/config/pages-url.config";
+import { DASHBOARD_PAGES } from "@/config/pages-url.config";
 
 export function OrderFeedView() {
-
-    const orders = [
+    const defaultOrders = [
         { id: '050', client: 'EXIST', status: 'Новая', date: '2024-03-11', articles: 20, sum: 20000, upl: '-' },
         { id: '123', client: 'EXIST', status: 'Новая', date: '2024-03-11', articles: 10, sum: 5000, upl: '-' },
         { id: '234', client: 'EXIST', status: 'Отправлен запрос на склад', date: '2024-03-11', articles: 2, sum: 3000, upl: '-' },
@@ -21,16 +18,44 @@ export function OrderFeedView() {
         { id: '603', client: 'AUTODOC', status: 'Сборка', date: '2024-03-11', articles: 7, sum: 15000, upl: '-' }
     ];
 
+    const [orders, setOrders] = useState(defaultOrders);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [searchValue, setSearchValue] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
-    const [isOpen, setIsOpen] = useState(false);
     const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({
         EXIST: false,
         EMEX: false,
         ZZAP: false,
         AUTODOC: false
     });
+
+    const router = useRouter();
+
+    useEffect(() => {
+        // Загрузка состояния и заказов из localStorage при монтировании компонента
+        const savedState = localStorage.getItem('orderFeedState');
+        const savedOrders = localStorage.getItem('orders');
+        if (savedState) {
+            const { date, search, status } = JSON.parse(savedState);
+            setSelectedDate(date || null);
+            setSearchValue(search || '');
+            setStatusFilter(status || null);
+        }
+        if (savedOrders) {
+            setOrders(JSON.parse(savedOrders));
+        }
+    }, []);
+
+    useEffect(() => {
+        // Сохранение состояния в localStorage при изменении состояния
+        const state = {
+            date: selectedDate,
+            search: searchValue,
+            status: statusFilter
+        };
+        localStorage.setItem('orderFeedState', JSON.stringify(state));
+        localStorage.setItem('orders', JSON.stringify(orders));
+    }, [selectedDate, searchValue, statusFilter, orders]);
 
     const filteredOrders = orders.filter(order =>
         order.id.includes(searchValue) &&
@@ -57,25 +82,16 @@ export function OrderFeedView() {
         }));
     };
 
-    const router = useRouter();
-
-    const rout = () => {
-        router.push(DASHBOARD_PAGES.ORDERDETAILVIEW)
+    const viewOrderDetails = (orderId: string) => {
+        router.push(`${DASHBOARD_PAGES.ORDERDETAILVIEW}?orderId=${orderId}`);
     }
-
-    const mf = {
-        marginLeft: "15%"
-    };
-    const f = {
-        display: "flex"
-    };
 
     return (
         <div>
             <div>
-                <div style={f}>
+                <div className="flex">
                     <h1 className='text-3xl font-medium'>Заказы</h1>
-                    <div className="flex mb-4 space-x-2" style={mf}>
+                    <div className="flex mb-4 space-x-2 ml-72">
                         <Button onClick={() => setStatusFilter('Новая')} className="bg-primary text-white px-4 py-2 rounded">Новые</Button>
                         <Button onClick={() => setStatusFilter('Сборка')} className="bg-gray-200 px-4 py-2 rounded">На сборке</Button>
                         <Button onClick={() => setStatusFilter('Отправлен запрос на склад')} className="bg-gray-200 px-4 py-2 rounded">Отправлены клиенту</Button>
@@ -102,7 +118,7 @@ export function OrderFeedView() {
                                 className="px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white"
                             />
                             <Button
-                                onClick={rout}
+                                onClick={() => router.push(DASHBOARD_PAGES.ORDERDETAILVIEW)}
                                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300"
                             >
                                 Создать новый заказ
@@ -131,7 +147,7 @@ export function OrderFeedView() {
                                         </thead>
                                         <tbody className="bg-gray-800 divide-y divide-gray-700">
                                         {groupedOrders[client].map((order) => (
-                                            <tr key={order.id}>
+                                            <tr key={order.id} onClick={() => viewOrderDetails(order.id)} className="cursor-pointer hover:bg-gray-700">
                                                 <td className="px-6 py-4 whitespace-nowrap">{order.id}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{order.client}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{order.status}</td>
@@ -150,5 +166,5 @@ export function OrderFeedView() {
                 </div>
             </div>
         </div>
-    )
+    );
 }
