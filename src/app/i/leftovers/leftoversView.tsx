@@ -74,7 +74,7 @@ export function LeftoversView() {
 		)
 	}
 
-	const uniqueBrands = [...new Set(leftOversItems.map(item => item.brand))]
+	const uniqueBrands = Array.from(new Set(leftOversItems.map(item => item.brand)));
 
 	const filteredItems = filterItems(leftOversItems)
 	const brandFilteredItems = filterByBrand(filteredItems)

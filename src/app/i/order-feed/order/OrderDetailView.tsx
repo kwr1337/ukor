@@ -1,8 +1,23 @@
-'use client'
+'use client';
 
+import * as cheerio from 'cheerio';
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/buttons/Button';
-import * as cheerio from 'cheerio'
+
+
+
+import { Button } from '@/components/ui/buttons/Button'
+
+interface Item {
+    code: string;
+    name: string;
+    quantity: string;
+    price: string;
+    total: string;
+    gtd: string;
+    brand: string;
+    cost: string;
+    priceTag: string;
+}
 
 export function OrderDetailView() {
     const [orderItems, setOrderItems] = useState<Item[]>([]);
