@@ -312,14 +312,29 @@ const extractedData = [
     }
 ];
 
+interface ParseData {
+    parse_name: string;
+    parse_price: number;
+    parse_amount: number;
+    parse_delivery: number;
+    item_delivery_rate: string;
+    parse_datetime: string;
+}
+
+interface Item {
+    product_article: string;
+    product_brand: string;
+    product_name: string;
+    product_min_cost: number;
+    product_cost: number;
+    parse_data: ParseData[];
+}
 
 export function PricingView() {
-    const [data, setData] = useState([]);
+    const [data, setData] = useState<Item[]>([]);
 
     useEffect(() => {
-        // Assuming data is extracted and ready to use
-        // @ts-ignore
-        setData(extractedData);
+        setData(extractedData); // TypeScript теперь знает, что extractedData соответствует типу Item[]
     }, []);
 
     return (
