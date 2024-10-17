@@ -7,7 +7,7 @@ import {OrderFeedView} from "@/app/i/order-feed/orderFeedView";
 
 
 export const metadata: Metadata = {
-    title: 'Лента заказов',
+    title: 'Заказов',
     ...NO_INDEX_PAGE
 }
 

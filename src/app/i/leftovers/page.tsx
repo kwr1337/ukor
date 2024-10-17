@@ -7,7 +7,7 @@ import {LeftoversView} from "@/app/i/leftovers/leftoversView";
 
 
 export const metadata: Metadata = {
-    title: 'Остатки',
+    title: 'Склады',
     ...NO_INDEX_PAGE
 }
 

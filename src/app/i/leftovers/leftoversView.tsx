@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/buttons/Button'
 import Loader from "@/components/ui/Loader/loader";
 
-
 interface LeftOvers {
 	name: string
 	articul: string
@@ -19,13 +18,16 @@ interface LeftOvers {
 export function LeftoversView() {
 	const [leftOversItems, setLeftOversItems] = useState<LeftOvers[]>([])
 	const [searchValue, setSearchValue] = useState('')
-	const [statusFilter, setStatusFilter] = useState<string | null>(null)
+	const [statusFilter, setStatusFilter] = useState<string >('')
 	const [selectedBrand, setSelectedBrand] = useState<string>('')
-	const [loading, setLoading] = useState(true) // Добавьте состояние загрузки
+
+	const [loading, setLoading] = useState(true)
+	const [currentPage, setCurrentPage] = useState(1)
+	const itemsPerPage = 100
 
 	useEffect(() => {
 		const fetchData = async () => {
-			setLoading(true) // Устанавливаем загрузку в true до начала запроса
+			setLoading(true)
 			try {
 				const response = await axios.get('http://147.45.153.94/front/table1.php')
 				const $ = cheerio.load(response.data)
@@ -48,7 +50,7 @@ export function LeftoversView() {
 			} catch (error) {
 				console.error('Ошибка при получении данных:', error)
 			} finally {
-				setLoading(false) // Устанавливаем загрузку в false после завершения запроса
+				setLoading(false)
 			}
 		}
 
@@ -74,41 +76,35 @@ export function LeftoversView() {
 		)
 	}
 
-	const uniqueBrands = Array.from(new Set(leftOversItems.map(item => item.brand)));
+	const uniqueBrands = Array.from(new Set(leftOversItems.map(item => item.brand)))
 
 	const filteredItems = filterItems(leftOversItems)
 	const brandFilteredItems = filterByBrand(filteredItems)
 	const searchedItems = searchItems(brandFilteredItems)
 
-	const mf = {
-		marginLeft: "30%"
-	};
-	const f = {
-		display: "flex"
-	};
+	// Пагинация
+	const totalPages = Math.ceil(searchedItems.length / itemsPerPage)
+	const indexOfLastItem = currentPage * itemsPerPage
+	const indexOfFirstItem = indexOfLastItem - itemsPerPage
+	const currentItems = searchedItems.slice(indexOfFirstItem, indexOfLastItem)
+
+	const handleNextPage = () => {
+		if (currentPage < totalPages) {
+			setCurrentPage(prevPage => prevPage + 1)
+		}
+	}
+
+	const handlePrevPage = () => {
+		if (currentPage > 1) {
+			setCurrentPage(prevPage => prevPage - 1)
+		}
+	}
 
 	return (
 		<div>
 			<div>
 				<div className='flex'>
-					<h1 className='text-3xl font-medium'>Остатки</h1>
-					<div
-						className='flex mb-4 space-x-2'
-						style={mf}
-					>
-						<Button
-							onClick={() => setStatusFilter('Общий склад')}
-							className='bg-primary text-white px-4 py-2 rounded'
-						>
-							Общий склад
-						</Button>
-						<Button
-							onClick={() => setStatusFilter('Наш склад')}
-							className='bg-gray-200 px-4 py-2 rounded'
-						>
-							Наш склад
-						</Button>
-					</div>
+					<h1 className='text-3xl font-medium'>Склады</h1>
 				</div>
 				<div className='my-3 h-0.5 bg-border w-full' />
 			</div>
@@ -119,8 +115,18 @@ export function LeftoversView() {
 						value={searchValue}
 						onChange={e => setSearchValue(e.target.value)}
 						className='px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 flex-1 bg-gray-700 text-white'
-						placeholder='Введите значение для поиска'
+						placeholder='Введите наименование или артикул для поиска'
 					/>
+					<select
+						value={statusFilter}
+						onChange={(e) => setStatusFilter(e.target.value)}
+						className="px-4 py-2.5 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white"
+					>
+						<option value="">Все склады</option>
+						<option value="Общий склад">Общий склад</option>
+						<option value="Наш склад">Наш склад</option>
+					</select>
+
 					<select
 						value={selectedBrand}
 						onChange={(e) => setSelectedBrand(e.target.value)}
@@ -161,14 +167,14 @@ export function LeftoversView() {
 							</tr>
 							</thead>
 							<tbody className='bg-gray-800 divide-y divide-gray-700'>
-							{searchedItems.length === 0 ? (
+							{currentItems.length === 0 ? (
 								<tr>
 									<td colSpan={6} className='px-6 py-4 text-center text-gray-500'>
 										Нет данных для отображения
 									</td>
 								</tr>
 							) : (
-								searchedItems.map(item => (
+								currentItems.map(item => (
 									<tr key={item.articul}>
 										<td className='px-6 py-4 whitespace-nowrap'>{item.name}</td>
 										<td className='px-6 py-4 whitespace-nowrap'>
@@ -185,6 +191,26 @@ export function LeftoversView() {
 							)}
 							</tbody>
 						</table>
+						{/* Пагинация */}
+						<div className='flex justify-between mt-4'>
+							<button
+								onClick={handlePrevPage}
+								disabled={currentPage === 1}
+								className={`px-4 py-2 rounded-md ${currentPage === 1 ? 'bg-gray-500' : 'bg-blue-500'} text-white`}
+							>
+								Предыдущая
+							</button>
+							<span className='text-gray-300'>
+								Страница {currentPage} из {totalPages}
+							</span>
+							<button
+								onClick={handleNextPage}
+								disabled={currentPage === totalPages}
+								className={`px-4 py-2 rounded-md ${currentPage === totalPages ? 'bg-gray-500' : 'bg-blue-500'} text-white`}
+							>
+								Следующая
+							</button>
+						</div>
 					</div>
 				)}
 			</div>

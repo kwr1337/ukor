@@ -1,27 +1,29 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import { Button } from "@/components/ui/buttons/Button";
 import { useRouter } from "next/navigation";
 import { DASHBOARD_PAGES } from "@/config/pages-url.config";
 
 export function OrderFeedView() {
     const defaultOrders = [
-        { id: '050', client: 'EXIST', status: 'Новая', date: '2024-03-11', articles: 20, sum: 20000, upl: '-' },
-        { id: '123', client: 'EXIST', status: 'Новая', date: '2024-03-11', articles: 10, sum: 5000, upl: '-' },
-        { id: '234', client: 'EXIST', status: 'Отправлен запрос на склад', date: '2024-03-11', articles: 2, sum: 3000, upl: '-' },
-        { id: '534', client: 'EXIST', status: 'Сборка', date: '2024-03-11', articles: 3, sum: 4000, upl: '-' },
-        // Пример заказов для других клиентов
-        { id: '601', client: 'EMEX', status: 'Новая', date: '2024-03-11', articles: 5, sum: 12000, upl: '-' },
-        { id: '602', client: 'ZZAP', status: 'Новая', date: '2024-03-11', articles: 3, sum: 8000, upl: '-' },
-        { id: '603', client: 'AUTODOC', status: 'Сборка', date: '2024-03-11', articles: 7, sum: 15000, upl: '-' }
+        { id: '050', client: 'EXIST', status: 'Новая', date: '2024-10-11', articles: 20, sum: 20000, upl: '-' },
+        { id: '123', client: 'EXIST', status: 'Новая', date: '2024-10-11', articles: 10, sum: 5000, upl: '-' },
+        { id: '234', client: 'EXIST', status: 'Отправлен запрос на склад', date: '2024-10-11', articles: 2, sum: 3000, upl: '-' },
+        { id: '534', client: 'EXIST', status: 'Сборка', date: '2024-10-11', articles: 3, sum: 4000, upl: '-' },
+        { id: '601', client: 'EMEX', status: 'Новая', date: '2024-10-11', articles: 5, sum: 12000, upl: '-' },
+        { id: '602', client: 'ZZAP', status: 'Новая', date: '2024-10-11', articles: 3, sum: 8000, upl: '-' },
+        { id: '603', client: 'AUTODOC', status: 'Сборка', date: '2024-10-11', articles: 7, sum: 15000, upl: '-' }
     ];
 
     const [orders, setOrders] = useState(defaultOrders);
-    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [startDate, setStartDate] = useState<string | null>(null);
+    const [endDate, setEndDate] = useState<string | null>(null);
     const [searchValue, setSearchValue] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
+    const [supplierFilter, setSupplierFilter] = useState<string | null>(null);
     const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({
         EXIST: false,
         EMEX: false,
@@ -32,39 +34,60 @@ export function OrderFeedView() {
     const router = useRouter();
 
     useEffect(() => {
-        // Загрузка состояния и заказов из localStorage при монтировании компонента
         const savedState = localStorage.getItem('orderFeedState');
         const savedOrders = localStorage.getItem('orders');
+
+        // Установка дат по умолчанию - последняя неделя
+        const now = new Date();
+        const lastWeekStart = subDays(now, 7);
+        const formattedStartDate = format(lastWeekStart, 'yyyy-MM-dd');
+        const formattedEndDate = format(now, 'yyyy-MM-dd');
+
         if (savedState) {
-            const { date, search, status } = JSON.parse(savedState);
-            setSelectedDate(date || null);
+            const { start, end, search, status, supplier } = JSON.parse(savedState);
+            setStartDate(start || formattedStartDate);
+            setEndDate(end || formattedEndDate);
             setSearchValue(search || '');
             setStatusFilter(status || null);
+            setSupplierFilter(supplier || null);
+        } else {
+            setStartDate(formattedStartDate);
+            setEndDate(formattedEndDate);
         }
+
         if (savedOrders) {
             setOrders(JSON.parse(savedOrders));
         }
     }, []);
 
     useEffect(() => {
-        // Сохранение состояния в localStorage при изменении состояния
         const state = {
-            date: selectedDate,
+            start: startDate,
+            end: endDate,
             search: searchValue,
-            status: statusFilter
+            status: statusFilter,
+            supplier: supplierFilter
         };
         localStorage.setItem('orderFeedState', JSON.stringify(state));
         localStorage.setItem('orders', JSON.stringify(orders));
-    }, [selectedDate, searchValue, statusFilter, orders]);
+    }, [startDate, endDate, searchValue, statusFilter, supplierFilter, orders]);
 
-    const filteredOrders = orders.filter(order =>
-        order.id.includes(searchValue) &&
-        (!selectedDate || order.date === selectedDate) &&
-        (!statusFilter || order.status === statusFilter)
-    );
+    const filteredOrders = orders.filter(order => {
+        const orderDate = new Date(order.date);
+        const isWithinDateRange = (!startDate || new Date(startDate) <= orderDate) &&
+            (!endDate || orderDate <= new Date(endDate));
+        return order.id.includes(searchValue) &&
+            (!statusFilter || order.status === statusFilter) &&
+            (!supplierFilter || order.client === supplierFilter) &&
+            isWithinDateRange;
+    });
 
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedDate(e.target.value ? format(new Date(e.target.value), 'yyyy-MM-dd') : null);
+    const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setStartDate(e.target.value ? format(new Date(e.target.value), 'yyyy-MM-dd') : null);
+    };
+
+    const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEndDate(e.target.value ? format(new Date(e.target.value), 'yyyy-MM-dd') : null);
     };
 
     const groupedOrders = filteredOrders.reduce((groups, order) => {
@@ -84,7 +107,11 @@ export function OrderFeedView() {
 
     const viewOrderDetails = (orderId: string) => {
         router.push(`${DASHBOARD_PAGES.ORDERDETAILVIEW}?orderId=${orderId}`);
-    }
+    };
+
+    const countOrdersByStatus = (status: string) => {
+        return orders.filter(order => order.status === status).length;
+    };
 
     return (
         <div>
@@ -92,10 +119,18 @@ export function OrderFeedView() {
                 <div className="flex">
                     <h1 className='text-3xl font-medium'>Заказы</h1>
                     <div className="flex mb-4 space-x-2 ml-72">
-                        <Button onClick={() => setStatusFilter('Новая')} className="bg-primary text-white px-4 py-2 rounded">Новые</Button>
-                        <Button onClick={() => setStatusFilter('Сборка')} className="bg-gray-200 px-4 py-2 rounded">На сборке</Button>
-                        <Button onClick={() => setStatusFilter('Отправлен запрос на склад')} className="bg-gray-200 px-4 py-2 rounded">Отправлены клиенту</Button>
-                        <Button onClick={() => setStatusFilter('Завершены')} className="bg-gray-200 px-4 py-2 rounded">Завершены</Button>
+                        <Button onClick={() => setStatusFilter(null)} className="bg-primary text-white px-4 py-2 rounded">
+                            Все ({orders.length})
+                        </Button>
+                        <Button onClick={() => setStatusFilter('Новая')} className="bg-primary text-white px-4 py-2 rounded">
+                            Новые ({countOrdersByStatus('Новая')})
+                        </Button>
+                        <Button onClick={() => setStatusFilter('Сборка')} className="bg-gray-200 px-4 py-2 rounded">
+                            На сборке ({countOrdersByStatus('Сборка')})
+                        </Button>
+                        <Button onClick={() => setStatusFilter('Отправлен запрос на склад')} className="bg-gray-200 px-4 py-2 rounded">
+                            Отправлены клиенту ({countOrdersByStatus('Отправлен запрос на склад')})
+                        </Button>
                     </div>
                 </div>
                 <div className='my-3 h-0.5 bg-border w-full' />
@@ -113,10 +148,27 @@ export function OrderFeedView() {
                             />
                             <input
                                 type="date"
-                                value={selectedDate || ''}
-                                onChange={handleDateChange}
+                                value={startDate || ''}
+                                onChange={handleStartDateChange}
                                 className="px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white"
                             />
+                            <input
+                                type="date"
+                                value={endDate || ''}
+                                onChange={handleEndDateChange}
+                                className="px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white"
+                            />
+                            <select
+                                value={supplierFilter || ''}
+                                onChange={(e) => setSupplierFilter(e.target.value || null)}
+                                className="px-4 py-2 border border-gray-600 rounded-md bg-gray-700 text-white"
+                            >
+                                <option value="">Все поставщики</option>
+                                <option value="EXIST">EXIST</option>
+                                <option value="EMEX">EMEX</option>
+                                <option value="ZZAP">ZZAP</option>
+                                <option value="AUTODOC">AUTODOC</option>
+                            </select>
                             <Button
                                 onClick={() => router.push(DASHBOARD_PAGES.ORDERDETAILVIEW)}
                                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300"
@@ -151,7 +203,7 @@ export function OrderFeedView() {
                                                 <td className="px-6 py-4 whitespace-nowrap">{order.id}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{order.client}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{order.status}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">{order.date}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">{format(new Date(order.date), 'dd.MM.yyyy', { locale: ru })}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{order.articles}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{order.sum}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">{order.upl}</td>
