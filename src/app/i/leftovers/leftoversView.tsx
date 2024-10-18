@@ -4,6 +4,7 @@ import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/buttons/Button'
 import Loader from "@/components/ui/Loader/loader";
+import productsData from './products.json'
 
 interface LeftOvers {
 	product_id: string
@@ -12,9 +13,9 @@ interface LeftOvers {
 	product_price: string
 	product_amount: string
 	product_brand: string
+	product_update_date:string
 	warehouse: string
 }
-
 export function LeftoversView() {
 	const [leftOversItems, setLeftOversItems] = useState<LeftOvers[]>([])
 	const [searchValue, setSearchValue] = useState('')
@@ -25,24 +26,44 @@ export function LeftoversView() {
 	const [currentPage, setCurrentPage] = useState(1)
 	const itemsPerPage = 100
 
+	// useEffect(() => {
+	// 	const fetchData = async () => {
+	// 		setLoading(true)
+	// 		try {
+	// 			// URL изменен для получения JSON данных
+	// 			const response = await axios.get('http://147.45.153.94/new_age/products.php')
+	// 			const data = response.data
+	//
+	// 			// Устанавливаем полученные данные
+	// 			setLeftOversItems(data)
+	// 		} catch (error) {
+	// 			console.error('Ошибка при получении данных:', error)
+	// 		} finally {
+	// 			setLoading(false)
+	// 		}
+	// 	}
+	//
+	// 	fetchData()
+	// }, [])
+
 	useEffect(() => {
-		const fetchData = async () => {
-			setLoading(true)
-			try {
-				// URL изменен для получения JSON данных
-				const response = await axios.get('http://147.45.153.94/new_age/products.php')
-				const data = response.data
-
-				// Устанавливаем полученные данные
-				setLeftOversItems(data)
-			} catch (error) {
-				console.error('Ошибка при получении данных:', error)
-			} finally {
-				setLoading(false)
-			}
-		}
-
-		fetchData()
+		// Имитируем загрузку данных с бэка
+		setLoading(true)
+		setTimeout(() => {
+			// Используем данные из products.json
+			const data: LeftOvers[] = productsData.map((item: any) => ({
+				product_id: item.product_id,
+				product_name: item.product_name,
+				product_article: item.product_article,
+				product_brand: item.product_brand,
+				product_amount: item.product_amount,
+				product_price: item.product_price,
+				product_update_date: item.product_update_date,
+				warehouse: item.product_cross || 'Unknown Warehouse',
+			}));
+			setLeftOversItems(data)
+			setLoading(false)
+		}, 1000) // Задержка для имитации загрузки
 	}, [])
 
 	const filterItems = (items: LeftOvers[]) => {
@@ -150,7 +171,7 @@ export function LeftoversView() {
 									Цена
 								</th>
 								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
-									Склад
+									Дата обновления
 								</th>
 							</tr>
 							</thead>
@@ -172,7 +193,7 @@ export function LeftoversView() {
 										<td className='px-6 py-4 whitespace-nowrap'>{item.product_amount}</td>
 										<td className='px-6 py-4 whitespace-nowrap'>{item.product_price}</td>
 										<td className='px-6 py-4 whitespace-nowrap'>
-											{item.warehouse}
+											{item.product_update_date}
 										</td>
 									</tr>
 								))
