@@ -1,17 +1,17 @@
 'use client'
 
 import axios from 'axios'
-import * as cheerio from 'cheerio'
 import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/buttons/Button'
 import Loader from "@/components/ui/Loader/loader";
 
 interface LeftOvers {
-	name: string
-	articul: string
-	brand: string
-	count: string
-	price: string
+	product_id: string
+	product_article: string
+	product_name: string
+	product_price: string
+	product_amount: string
+	product_brand: string
 	warehouse: string
 }
 
@@ -29,23 +29,11 @@ export function LeftoversView() {
 		const fetchData = async () => {
 			setLoading(true)
 			try {
-				const response = await axios.get('http://147.45.153.94/front/table1.php')
-				const $ = cheerio.load(response.data)
+				// URL изменен для получения JSON данных
+				const response = await axios.get('http://147.45.153.94/new_age/products.php')
+				const data = response.data
 
-				const data: LeftOvers[] = []
-				$('table tbody tr').each((index, element) => {
-					if (index === 0) return
-
-					const name = $(element).find('td:nth-child(1)').text().trim()
-					const articul = $(element).find('td:nth-child(2)').text().trim()
-					const brand = $(element).find('td:nth-child(3)').text().trim()
-					const count = $(element).find('td:nth-child(4)').text().trim()
-					const price = $(element).find('td:nth-child(5)').text().trim()
-					const warehouse = $(element).find('td:nth-child(6)').text().trim()
-
-					data.push({ name, articul, brand, count, price, warehouse })
-				})
-
+				// Устанавливаем полученные данные
 				setLeftOversItems(data)
 			} catch (error) {
 				console.error('Ошибка при получении данных:', error)
@@ -64,19 +52,19 @@ export function LeftoversView() {
 
 	const filterByBrand = (items: LeftOvers[]) => {
 		if (!selectedBrand) return items
-		return items.filter(item => item.brand === selectedBrand)
+		return items.filter(item => item.product_brand === selectedBrand)
 	}
 
 	const searchItems = (items: LeftOvers[]) => {
 		if (!searchValue) return items
 		return items.filter(item =>
-			item.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-			item.articul.toLowerCase().includes(searchValue.toLowerCase()) ||
-			item.brand.toLowerCase().includes(searchValue.toLowerCase())
+			item.product_name.toLowerCase().includes(searchValue.toLowerCase()) ||
+			item.product_article.toLowerCase().includes(searchValue.toLowerCase()) ||
+			item.product_brand.toLowerCase().includes(searchValue.toLowerCase())
 		)
 	}
 
-	const uniqueBrands = Array.from(new Set(leftOversItems.map(item => item.brand)))
+	const uniqueBrands = Array.from(new Set(leftOversItems.map(item => item.product_brand)))
 
 	const filteredItems = filterItems(leftOversItems)
 	const brandFilteredItems = filterByBrand(filteredItems)
@@ -175,14 +163,14 @@ export function LeftoversView() {
 								</tr>
 							) : (
 								currentItems.map(item => (
-									<tr key={item.articul}>
-										<td className='px-6 py-4 whitespace-nowrap'>{item.name}</td>
+									<tr key={item.product_article}>
+										<td className='px-6 py-4 whitespace-nowrap'>{item.product_name}</td>
 										<td className='px-6 py-4 whitespace-nowrap'>
-											{item.articul}
+											{item.product_article}
 										</td>
-										<td className='px-6 py-4 whitespace-nowrap'>{item.brand}</td>
-										<td className='px-6 py-4 whitespace-nowrap'>{item.count}</td>
-										<td className='px-6 py-4 whitespace-nowrap'>{item.price}</td>
+										<td className='px-6 py-4 whitespace-nowrap'>{item.product_brand}</td>
+										<td className='px-6 py-4 whitespace-nowrap'>{item.product_amount}</td>
+										<td className='px-6 py-4 whitespace-nowrap'>{item.product_price}</td>
 										<td className='px-6 py-4 whitespace-nowrap'>
 											{item.warehouse}
 										</td>
