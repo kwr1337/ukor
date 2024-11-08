@@ -10,6 +10,8 @@ interface InputFieldProps {
 	disabled?: boolean
 	type?: string
 	isNumber?: boolean
+	onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+	value?: string
 }
 
 export const Field = forwardRef<HTMLInputElement, InputFieldProps>(

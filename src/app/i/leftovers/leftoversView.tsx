@@ -26,45 +26,45 @@ export function LeftoversView() {
 	const [currentPage, setCurrentPage] = useState(1)
 	const itemsPerPage = 100
 
-	// useEffect(() => {
-	// 	const fetchData = async () => {
-	// 		setLoading(true)
-	// 		try {
-	// 			// URL изменен для получения JSON данных
-	// 			const response = await axios.get('http://147.45.153.94/new_age/products.php')
-	// 			const data = response.data
-	//
-	// 			// Устанавливаем полученные данные
-	// 			setLeftOversItems(data)
-	// 		} catch (error) {
-	// 			console.error('Ошибка при получении данных:', error)
-	// 		} finally {
-	// 			setLoading(false)
-	// 		}
-	// 	}
-	//
-	// 	fetchData()
-	// }, [])
+	 useEffect(() => {
+		const fetchData = async () => {
+	 		setLoading(true)
+	 		try {
+	 			// URL изменен для получения JSON данных
+	 			const response = await axios.get('http://147.45.153.94/new_age/products.php')
+	 			const data = response.data
 
-	useEffect(() => {
-		// Имитируем загрузку данных с бэка
-		setLoading(true)
-		setTimeout(() => {
-			// Используем данные из products.json
-			const data: LeftOvers[] = productsData.map((item: any) => ({
-				product_id: item.product_id,
-				product_name: item.product_name,
-				product_article: item.product_article,
-				product_brand: item.product_brand,
-				product_amount: item.product_amount,
-				product_price: item.product_price,
-				product_update_date: item.product_update_date,
-				warehouse: item.product_cross || 'Unknown Warehouse',
-			}));
-			setLeftOversItems(data)
-			setLoading(false)
-		}, 1000) // Задержка для имитации загрузки
-	}, [])
+	 			// Устанавливаем полученные данные
+	 			setLeftOversItems(data)
+	 		} catch (error) {
+	 			console.error('Ошибка при получении данных:', error)
+	 		} finally {
+	 			setLoading(false)
+	 		}
+	 	}
+
+	 	fetchData()
+	 }, [])
+
+	// useEffect(() => {
+	// 	// Имитируем загрузку данных с бэка
+	// 	setLoading(true)
+	// 	setTimeout(() => {
+	// 		// Используем данные из products.json
+	// 		const data: LeftOvers[] = productsData.map((item: any) => ({
+	// 			product_id: item.product_id,
+	// 			product_name: item.product_name,
+	// 			product_article: item.product_article,
+	// 			product_brand: item.product_brand,
+	// 			product_amount: item.product_amount,
+	// 			product_price: item.product_price,
+	// 			product_update_date: item.product_update_date,
+	// 			warehouse: item.product_cross || 'Unknown Warehouse',
+	// 		}));
+	// 		setLeftOversItems(data)
+	// 		setLoading(false)
+	// 	}, 1000) // Задержка для имитации загрузки
+	// }, [])
 
 	const filterItems = (items: LeftOvers[]) => {
 		if (!statusFilter) return items
