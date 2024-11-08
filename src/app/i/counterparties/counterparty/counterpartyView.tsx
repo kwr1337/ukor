@@ -102,7 +102,7 @@ export function CounterpartyView() {
 	const handleSubmit = async (e:any) => {
 		e.preventDefault()
 		try {
-			const response = await axios.post('http://147.45.153.94/new_age/API/contragents/add_contragent.php', {
+			const response = await axios.post('/new_age/API/contragents/add_contragent.php', {
 				contragent_name: formData.name,
 				contragent_type: formData.type,
 				contragent_inn: formData.inn,
@@ -131,7 +131,7 @@ export function CounterpartyView() {
 							className='mt-2 bg-bg flex w-full items-center justify-center rounded-lg border border-border bg-white/0 p-3 text-base outline-none placeholder:text-white/30 placeholder:font-normal duration-500 transition-colors focus:border-primary'
 						>
 							{counterpartyTypes.map(type => (
-								<option key={type.value} value={type.value} selected>
+								<option className={"bg-bg"} key={type.value} value={type.value} selected>
 									{type.label}
 								</option>
 							))}
@@ -156,7 +156,7 @@ export function CounterpartyView() {
 								className="mt-2 bg-bg flex w-full items-center justify-center rounded-lg border border-border bg-white/0 p-3 text-base outline-none placeholder:text-white/30 placeholder:font-normal duration-500 transition-colors focus:border-primary"
 							>
 								{phoneTypes.map(type => (
-									<option key={type.value} value={type.value}>
+									<option className={"bg-bg"} key={type.value} value={type.value}>
 										{type.label}
 									</option>
 								))}
@@ -184,7 +184,7 @@ export function CounterpartyView() {
 									className="mt-2 bg-bg flex w-full items-center justify-center rounded-lg border border-border bg-white/0 p-3 text-base outline-none placeholder:text-white/30 placeholder:font-normal duration-500 transition-colors focus:border-primary"
 								>
 									{phoneTypes.map(type => (
-										<option key={type.value} value={type.value}>
+										<option className={"bg-bg"} key={type.value} value={type.value}>
 											{type.label}
 										</option>
 									))}
@@ -222,7 +222,7 @@ export function CounterpartyView() {
 								className="mt-2 bg-bg flex w-full items-center justify-center rounded-lg border border-border bg-white/0 p-3 text-base outline-none placeholder:text-white/30 placeholder:font-normal duration-500 transition-colors focus:border-primary"
 							>
 								{emailTypes.map(type => (
-									<option key={type.value} value={type.value}>
+									<option className={"bg-bg"} key={type.value} value={type.value}>
 										{type.label}
 									</option>
 								))}
@@ -250,7 +250,7 @@ export function CounterpartyView() {
 									className="mt-2 bg-bg flex w-full items-center justify-center rounded-lg border border-border bg-white/0 p-3 text-base outline-none placeholder:text-white/30 placeholder:font-normal duration-500 transition-colors focus:border-primary"
 								>
 									{emailTypes.map(type => (
-										<option key={type.value} value={type.value}>
+										<option className={"bg-bg"} key={type.value} value={type.value}>
 											{type.label}
 										</option>
 									))}

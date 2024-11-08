@@ -16,7 +16,7 @@ export function NomenclatureView() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('http://147.45.153.94/new_age/API/nomenclature/get_nomenclature.php');
+                const response = await axios.get('/new_age/API/nomenclature/get_nomenclature.php');
                 setData(response.data); // Update the state with the fetched data
             } catch (error) {
                 console.error("Error fetching nomenclature data", error);
@@ -33,7 +33,7 @@ export function NomenclatureView() {
 
     const handleAdd = async () => {
         try {
-            const url = 'http://147.45.153.94/new_age/API/nomenclature/sync_nomenclature.php';
+            const url = '/new_age/API/nomenclature/sync_nomenclature.php';
 
             const nomenclatureData = {
                 nomenclature_number: editData?.nomenclature_number || '',
@@ -64,7 +64,7 @@ export function NomenclatureView() {
 
     const handleEdit = async () => {
         try {
-            const url = 'http://147.45.153.94/new_age/API/nomenclature/sync_nomenclature.php';
+            const url = '/new_age/API/nomenclature/sync_nomenclature.php';
             const nomenclatureData = {
                 nomenclature_number: editData?.nomenclature_number || '',
                 nomenclature_brand: editData?.nomenclature_brand || '',
@@ -100,7 +100,7 @@ export function NomenclatureView() {
 
     const fetchData = async () => {
         try {
-            const response = await axios.get('http://147.45.153.94/new_age/API/nomenclature/get_nomenclature.php');
+            const response = await axios.get('/new_age/API/nomenclature/get_nomenclature.php');
             setData(response.data);
         } catch (error) {
             console.error("Error fetching nomenclature data", error);
@@ -148,7 +148,7 @@ export function NomenclatureView() {
             try {
 
                 for (const id of selectedItems) {
-                    const response = await axios.post('http://147.45.153.94/new_age/API/nomenclature/delete_nomenclature.php', {
+                    const response = await axios.post('/new_age/API/nomenclature/delete_nomenclature.php', {
                         nomenclature_id: id, // Отправляем по одному ID
                     });
 

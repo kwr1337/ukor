@@ -334,7 +334,7 @@ export function PricingView() {
     const [data, setData] = useState<Item[]>([]);
 
     useEffect(() => {
-        setData(extractedData); // TypeScript теперь знает, что extractedData соответствует типу Item[]
+        setData(extractedData);
     }, []);
 
     return (

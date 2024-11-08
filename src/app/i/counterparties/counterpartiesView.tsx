@@ -33,7 +33,7 @@ export function CounterPartiesView() {
 
 
 	useEffect(() => {
-		fetch('http://147.45.153.94/new_age/API/contragents/get_contragents.php')
+		fetch('/new_age/API/contragents/get_contragents.php')
 			.then(response => response.json())
 			.then(data => {
 				const transformedData: Counterparty[] = data.map((item: any) => ({
@@ -64,7 +64,7 @@ export function CounterPartiesView() {
 
 	const handleDeleteCounterparty = (id: any) => {
 		// Отправка запроса на удаление контрагента на сервер
-		fetch('http://147.45.153.94/new_age/API/contragents/delete_contragent.php', {
+		fetch('/new_age/API/contragents/delete_contragent.php', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -118,7 +118,7 @@ export function CounterPartiesView() {
 			}));
 
 			// Отправка данных на сервер
-			fetch('http://147.45.153.94/new_age/API/contragents/update_contragent.php', {
+			fetch('/new_age/API/contragents/update_contragent.php', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
