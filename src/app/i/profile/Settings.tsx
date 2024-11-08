@@ -11,28 +11,15 @@ import { useInitialData } from './useInitialData'
 import { useUpdateSettings } from './useUpdateSettings'
 
 export function Settings() {
-	const { register, handleSubmit, reset } = useForm<TypeUserForm>({
-		mode: 'onChange'
-	})
 
-	useInitialData(reset)
 
 	const { isPending, mutate } = useUpdateSettings()
 
-	const onSubmit: SubmitHandler<TypeUserForm> = data => {
-		const { password, ...rest } = data
-
-		mutate({
-			...rest,
-			password: password || undefined
-		})
-	}
 
 	return (
 		<div>
 			<form
 				className='w-2/4'
-				onSubmit={handleSubmit(onSubmit)}
 			>
 				<div className='grid grid-cols-3 gap-10'>
 					<div>

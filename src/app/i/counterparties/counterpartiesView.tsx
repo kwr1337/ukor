@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/buttons/Button'
 
 import { DASHBOARD_PAGES } from '@/config/pages-url.config'
+import axios from "axios";
 
 type Counterparty = {
 	id: string
@@ -61,9 +62,40 @@ export function CounterPartiesView() {
 		setIsOpen(true)
 	}
 
-	const handleDeleteCounterparty = (id: string) => {
-		setData(prevData => prevData.filter(contragent => contragent.id !== id))
-	}
+	const handleDeleteCounterparty = (id: any) => {
+		// Отправка запроса на удаление контрагента на сервер
+		fetch('http://147.45.153.94/new_age/API/contragents/delete_contragent.php', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				contragent_id: id, // передаем ID контрагента для удаления
+			}),
+		})
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error(`Ошибка HTTP: ${response.status}`);
+				}
+				return response.json(); // Получаем JSON из ответа
+			})
+			.then((jsonResult) => {
+				// Проверяем успешность операции
+				if (jsonResult.result === true) {
+					// Удаляем контрагента из состояния
+					setData((prevData) =>
+						prevData.filter((contragent) => contragent.id !== id)
+					);
+				} else {
+					console.error('Ошибка при удалении контрагента:', jsonResult.message || 'Неизвестная ошибка');
+				}
+			})
+			.catch((error) => {
+				console.error('Ошибка при удалении контрагента:', error.message);
+				console.error('Полная ошибка:', error);
+			});
+	};
+
 
 	const handleCheckboxChange = (id: string) => {
 		setSelectedCounterparties(prevSelected =>

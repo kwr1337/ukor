@@ -185,7 +185,7 @@ export function LeftoversView() {
 							) : (
 								currentItems.map(item => (
 									<tr key={item.product_article}>
-										<td className='px-6 py-4 whitespace-nowrap'>{item.product_name}</td>
+										<td className='px-6 py-4 whitespace-wrap'>{item.product_name}</td>
 										<td className='px-6 py-4 whitespace-nowrap'>
 											{item.product_article}
 										</td>
