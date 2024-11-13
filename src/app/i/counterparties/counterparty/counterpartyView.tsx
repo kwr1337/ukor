@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/buttons/Button'
 import { Field } from '@/components/ui/fields/Field'
 import axios from "axios";
+import { DASHBOARD_PAGES } from "@/config/pages-url.config";
+import { useRouter } from 'next/navigation'
 
 type Phone = {
 	value: string;
@@ -26,29 +28,101 @@ type FormData = {
 export function CounterpartyView() {
 	const phoneTypes = [
 		{ value: 'Основной', label: 'Основной' },
-		{ value: 'Рабочий', label: 'Рабочий' },
-		{ value: 'Дополнительный', label: 'Дополнительный' } // Добавлен тип для дополнительного телефона
-	]
+		{ value: 'Дополнительный', label: 'Дополнительный' }
+	];
 
 	const emailTypes = [
 		{ value: 'Основная', label: 'Основная' },
-		{ value: 'Рабочая', label: 'Рабочая' },
-		{ value: 'Дополнительная', label: 'Дополнительная' } // Добавлен тип для дополнительной почты
-	]
+		{ value: 'На парсинг', label: 'На парсинг' }
+	];
 
 	const counterpartyTypes = [
 		{ value: 'Склад', label: 'Склад' },
 		{ value: 'Поставщик', label: 'Поставщик' },
 		{ value: 'Клиент', label: 'Клиент' },
-	]
+		{ value: 'Наша компания', label: 'Наша компания' },
+	];
 
-	const [formData, setFormData] = useState({
+	const [formData, setFormData] = useState<FormData>({
 		name: '',
-		type: '',
+		type: counterpartyTypes[0].value,
 		inn: '',
-		phones: [{ value: '', type: 'main' }], // основной телефон
-		emails: [{ value: '', type: 'main' }]  // основная почта
-	})
+		phones: [{ value: '', type: phoneTypes[0].value }],
+		emails: [{ value: '', type: emailTypes[0].value }]
+	});
+
+	const [existingCounterparties, setExistingCounterparties] = useState<FormData[]>([]);
+	const [errors, setErrors] = useState<string | null>(null);
+	const router = useRouter();
+
+	// Новое состояние для дополнительного поля для типа "Склад"
+	const [warehouseAddress, setWarehouseAddress] = useState<string>("");
+
+	const handleBack = () => {
+		router.push(DASHBOARD_PAGES.COUNTERPARTIES);
+	}
+
+	useEffect(() => {
+		const fetchCounterparties = async () => {
+			try {
+				const response = await axios.get('/new_age/API/contragents/get_contragents.php');
+				setExistingCounterparties(response.data);
+			} catch (error) {
+				console.error('Ошибка при получении контрагентов:', error);
+			}
+		};
+		fetchCounterparties();
+	}, []);
+
+	const isUniqueAndComplete = (): boolean => {
+		const { name, inn, type, phones, emails } = formData;
+
+		// Проверка обязательных полей
+		if (!name || !type || !phones[0].value || !emails[0].value) {
+			setErrors('Все обязательные поля должны быть заполнены.');
+			return false;
+		}
+
+		// Если выбран тип "Склад", проверяем, что адрес склада заполнен
+		if (type === 'Склад' && !warehouseAddress) {
+			setErrors('Для типа "Склад" необходимо заполнить название склада.');
+			return false;
+		}
+
+		// Проверки уникальности
+		const nameExists = existingCounterparties.some(counterparty => counterparty.counterparty_name === name);
+		// const innExists = existingCounterparties.some(counterparty => counterparty.inn === inn);
+
+		if (nameExists) {
+			setErrors('Контрагент с таким именем уже существует');
+			return false;
+		}
+		// if (innExists) {
+		// 	setErrors('Контрагент с таким ИНН уже существует');
+		// 	return false;
+		// }
+		for (let phone of phones) {
+			const phoneExists = existingCounterparties.some(counterparty =>
+				counterparty.phones.some(p => p.value === phone.value)
+			);
+			if (phoneExists) {
+				setErrors('Контрагент с таким номером телефона уже существует');
+				return false;
+			}
+		}
+		for (let email of emails) {
+			const emailExists = existingCounterparties.some(counterparty =>
+				counterparty.emails.some(e => e.value === email.value)
+			);
+			if (emailExists) {
+				setErrors('Контрагент с таким email уже существует');
+				return false;
+			}
+		}
+
+		setErrors(null);
+		return true;
+	};
 
 	const handleInputChange = (field: keyof FormData, value: string) => {
 		setFormData(prevData => ({ ...prevData, [field]: value }));
@@ -60,65 +134,70 @@ export function CounterpartyView() {
 		setFormData(prevData => ({ ...prevData, phones: updatedPhones }));
 	};
 
-
 	const handleEmailChange = (index: number, field: keyof Email, value: string) => {
 		const updatedEmails = [...formData.emails];
 		updatedEmails[index][field] = value;
 		setFormData(prevData => ({ ...prevData, emails: updatedEmails }));
 	};
 
-	// Функция для добавления дополнительного телефона
 	const addPhoneField = () => {
 		setFormData(prevData => ({
 			...prevData,
-			phones: [...prevData.phones, { value: '', type: 'work' }] // добавляем рабочий телефон
+			phones: [...prevData.phones, { value: '', type: phoneTypes[1].value }]
 		}))
 	}
 
-	// Функция для добавления дополнительной почты
 	const addEmailField = () => {
 		setFormData(prevData => ({
 			...prevData,
-			emails: [...prevData.emails, { value: '', type: 'work' }] // добавляем рабочую почту
+			emails: [...prevData.emails, { value: '', type: emailTypes[1].value }]
 		}))
 	}
 
-	// Функция для удаления дополнительного телефона
 	const removePhoneField = () => {
 		setFormData(prevData => ({
 			...prevData,
-			phones: prevData.phones.slice(0, -1) // удаляем последний дополнительный телефон
+			phones: prevData.phones.slice(0, -1)
 		}))
 	}
 
-	// Функция для удаления дополнительной почты
 	const removeEmailField = () => {
 		setFormData(prevData => ({
 			...prevData,
-			emails: prevData.emails.slice(0, -1) // удаляем последнюю дополнительную почту
+			emails: prevData.emails.slice(0, -1)
 		}))
 	}
 
-	const handleSubmit = async (e:any) => {
-		e.preventDefault()
+
+
+	const handleSubmit = async (e: any) => {
+		e.preventDefault();
+
+		if (!isUniqueAndComplete()) return;
+
 		try {
 			const response = await axios.post('/new_age/API/contragents/add_contragent.php', {
 				contragent_name: formData.name,
 				contragent_type: formData.type,
 				contragent_inn: formData.inn,
 				contragent_phones: formData.phones,
-				contragent_emails: formData.emails
-			})
-			console.log('Response:', response.data)
-			alert('Контрагент успешно добавлен')
+				contragent_emails: formData.emails,
+				warehouse_address: formData.type === 'Склад' ? warehouseAddress : null,
+			});
+			console.log('Response:', response.data);
+			alert('Контрагент успешно добавлен');
+			handleBack();
 		} catch (error) {
-			console.error('Ошибка при добавлении контрагента:', error)
+			console.error('Ошибка при добавлении контрагента:', error);
 		}
 	}
 
 	return (
 		<div>
 			<form className='w-2/4' onSubmit={handleSubmit}>
+
+				{errors && <div className="text-red-500">{errors}</div>}
+
 				<div className='grid grid-cols-3 gap-10'>
 					<div>
 						<label htmlFor='counterpartyType' className='text-sm text-white/60 dark:text-white ml-1.5 font-medium'>
@@ -131,16 +210,27 @@ export function CounterpartyView() {
 							className='mt-2 bg-bg flex w-full items-center justify-center rounded-lg border border-border bg-white/0 p-3 text-base outline-none placeholder:text-white/30 placeholder:font-normal duration-500 transition-colors focus:border-primary'
 						>
 							{counterpartyTypes.map(type => (
-								<option className={"bg-bg"} key={type.value} value={type.value} selected>
+								<option className={"bg-bg"} key={type.value} value={type.value}>
 									{type.label}
 								</option>
 							))}
 						</select>
 
+						{formData.type === 'Склад' && (
+							<Field
+								id="warehouseAddress"
+								label="Название склада"
+								placeholder="Введите название склада"
+								value={warehouseAddress}
+								onChange={e => setWarehouseAddress(e.target.value)}
+							/>
+						)}
+
 						<Field id='name' label='Наименование:' placeholder='Введите наименование' onChange={e => handleInputChange('name', e.target.value)} />
 						<Field id='inn' label='ИНН:' placeholder='Введите ИНН' onChange={e => handleInputChange('inn', e.target.value)} />
 
-						<Button type='submit' className={"mt-2"}>Сохранить</Button>
+						<Button type='submit' className={"mt-2 hover:bg-green-500 w-full"}>Сохранить</Button>
+						<Button className={"mt-2 hover:bg-red-500 w-full"} onClick={handleBack}>Отмена</Button>
 					</div>
 
 					<div>

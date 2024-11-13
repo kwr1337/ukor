@@ -94,16 +94,16 @@ export function SuppliesView() {
                             <tbody className="bg-gray-800 divide-y divide-gray-700">
                             {filteredOrders.map((order) => (
                                 <tr key={order.orderNumber}>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.orderNumber}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.creationDate}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.itemQuantity}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.acceptedQuantity}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.warehouse}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.plannedDate}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.actualDate}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.status}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.supplier}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{order.country}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.orderNumber}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.creationDate}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.itemQuantity}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.acceptedQuantity}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.warehouse}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.plannedDate}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.actualDate}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.status}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.supplier}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.country}</td>
                                 </tr>
                             ))}
                             </tbody>

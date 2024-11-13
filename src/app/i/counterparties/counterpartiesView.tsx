@@ -324,12 +324,12 @@ export function CounterPartiesView() {
 										}
 									/>
 								</th>
-								<th className='px-6 py-3 text-center'>Тип</th>
-								<th className='px-6 py-3 text-center'>Наименование</th>
-								<th className='px-6 py-3 text-center'>ИНН</th>
-								<th className='px-6 py-3 text-center'>Почта</th>
-								<th className='px-6 py-3 text-center'>Телефон</th>
-								<th className='px-6 py-3 text-center'></th>
+								<th className='px-6 py-3 text-xs text-center'>Тип</th>
+								<th className='px-6 py-3 text-xs text-center'>Наименование</th>
+								<th className='px-6 py-3 text-xs text-center'>ИНН</th>
+								<th className='px-6 py-3 text-xs text-center'>Почта</th>
+								<th className='px-6 py-3 text-xs text-center'>Телефон</th>
+								<th className='px-6 py-3 text-xs text-center'></th>
 							</tr>
 						</thead>
 						<tbody className='bg-gray-800 divide-y divide-gray-700'>
@@ -342,16 +342,16 @@ export function CounterPartiesView() {
 											onChange={() => handleCheckboxChange(contragent.id)}
 										/>
 									</td>
-									<td className='px-6 py-4 text-center'>{contragent.type}</td>
-									<td className='px-6 py-4 text-center'>{contragent.name}</td>
-									<td className='px-6 py-4 text-center'>{contragent.INN}</td>
-									<td className='px-6 py-4 text-center'>
+									<td className='px-6 py-4 text-xs text-center'>{contragent.type}</td>
+									<td className='px-6 py-4 text-xs text-center'>{contragent.name}</td>
+									<td className='px-6 py-4 text-xs text-center'>{contragent.INN}</td>
+									<td className='px-6 py-4 text-xs text-center'>
 										{contragent.email.map(e => e.value).join(', ')}
 									</td>
-									<td className='px-6 py-4 text-center'>
+									<td className='px-6 py-4 text-xs text-center'>
 										{contragent.phone.map(p => p.value).join(', ')}
 									</td>
-									<td className='px-6 py-4 text-center space-x-2'>
+									<td className='px-6 py-4 text-xs text-center space-x-2'>
 										{selectedCounterparties.includes(contragent.id) && (
 											<>
 												<Button
@@ -441,6 +441,7 @@ export function CounterPartiesView() {
 											<option value='Склад'>Склад</option>
 											<option value='Клиент'>Клиент</option>
 											<option value='Поставщик'>Поставщик</option>
+											<option value='Наша компания'>Наша компания</option>
 										</select>
 									</div>
 
@@ -460,8 +461,8 @@ export function CounterPartiesView() {
 													onChange={e => handleChangePhoneType(e, index)}
 													className='px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md'
 												>
-													<option value='work' selected>Рабочий</option>
-													<option value='private'>Личный</option>
+													<option value='Основной'>Основной</option>
+													<option value='Дополнительный'>Дополнительный</option>
 												</select>
 												<button
 													onClick={() => handleRemovePhone(index)}

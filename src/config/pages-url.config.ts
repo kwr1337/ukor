@@ -5,7 +5,7 @@ class DASHBOARD {
 	HOME = this.root
 
 	BLACK_LIST = `${this.root}/black-list`
-	COUNTERPARTIES = `counterparties`
+	COUNTERPARTIES = `${this.root}/counterparties`
 	EMPLOYEES = `${this.root}/employees`
 	MAIL = `${this.root}/mail`
 	NOMENCLATURE = `${this.root}/nomenclature`

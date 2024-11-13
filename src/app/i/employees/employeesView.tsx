@@ -75,10 +75,10 @@ export function EmployeesView() {
                             <tbody className="bg-gray-800 divide-y divide-gray-700">
                             {filteredOrders.map((data) => (
                                 <tr key={data.FIO}>
-                                    <td className="px-6 py-4 whitespace-nowrap">{data.FIO}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{data.post}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{data.email}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{data.phone}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{data.FIO}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{data.post}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{data.email}</td>
+                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{data.phone}</td>
                                 </tr>
                             ))}
                             </tbody>

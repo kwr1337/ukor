@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { format, subDays } from 'date-fns';
@@ -24,12 +24,6 @@ export function OrderFeedView() {
     const [searchValue, setSearchValue] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [supplierFilter, setSupplierFilter] = useState<string | null>(null);
-    const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({
-        EXIST: false,
-        EMEX: false,
-        ZZAP: false,
-        AUTODOC: false
-    });
 
     const router = useRouter();
 
@@ -37,7 +31,6 @@ export function OrderFeedView() {
         const savedState = localStorage.getItem('orderFeedState');
         const savedOrders = localStorage.getItem('orders');
 
-        // Установка дат по умолчанию - последняя неделя
         const now = new Date();
         const lastWeekStart = subDays(now, 7);
         const formattedStartDate = format(lastWeekStart, 'yyyy-MM-dd');
@@ -90,21 +83,6 @@ export function OrderFeedView() {
         setEndDate(e.target.value ? format(new Date(e.target.value), 'yyyy-MM-dd') : null);
     };
 
-    const groupedOrders = filteredOrders.reduce((groups, order) => {
-        if (!groups[order.client]) {
-            groups[order.client] = [];
-        }
-        groups[order.client].push(order);
-        return groups;
-    }, {} as Record<string, typeof orders>);
-
-    const toggleClient = (client: string) => {
-        setExpandedClients(prevState => ({
-            ...prevState,
-            [client]: !prevState[client]
-        }));
-    };
-
     const viewOrderDetails = (orderId: string) => {
         router.push(`${DASHBOARD_PAGES.ORDERDETAILVIEW}?orderId=${orderId}`);
     };
@@ -115,106 +93,92 @@ export function OrderFeedView() {
 
     return (
         <div>
-            <div>
-                <div className="flex">
-                    <h1 className='text-3xl font-medium'>Заказы</h1>
-                    <div className="flex mb-4 space-x-2 ml-72">
-                        <Button onClick={() => setStatusFilter(null)} className="bg-primary text-white px-4 py-2 rounded">
-                            Все ({orders.length})
-                        </Button>
-                        <Button onClick={() => setStatusFilter('Новая')} className="bg-primary text-white px-4 py-2 rounded">
-                            Новые ({countOrdersByStatus('Новая')})
-                        </Button>
-                        <Button onClick={() => setStatusFilter('Сборка')} className="bg-gray-200 px-4 py-2 rounded">
-                            На сборке ({countOrdersByStatus('Сборка')})
-                        </Button>
-                        <Button onClick={() => setStatusFilter('Отправлен запрос на склад')} className="bg-gray-200 px-4 py-2 rounded">
-                            Отправлены клиенту ({countOrdersByStatus('Отправлен запрос на склад')})
+            <div className={'flex flex-row'}>
+                <h1 className='text-3xl font-medium'>Заказы</h1>
+                <div className="flex ml-[15%] mb-4 space-x-2">
+                    <Button onClick={() => setStatusFilter(null)} className="bg-primary text-white px-4 py-2 rounded">
+                        Все ({orders.length})
+                    </Button>
+                    <Button onClick={() => setStatusFilter('Новая')} className="bg-primary text-white px-4 py-2 rounded">
+                        Новые ({countOrdersByStatus('Новая')})
+                    </Button>
+                    <Button onClick={() => setStatusFilter('Сборка')} className="bg-gray-200 px-4 py-2 rounded">
+                        На сборке ({countOrdersByStatus('Сборка')})
+                    </Button>
+                    <Button onClick={() => setStatusFilter('Отправлен запрос на склад')} className="bg-gray-200 px-4 py-2 rounded">
+                        Отправлены клиенту ({countOrdersByStatus('Отправлен запрос на склад')})
+                    </Button>
+                </div>
+            </div>
+            <div className='my-3 h-0.5 bg-border w-full' />
+            <div className="shadow-md rounded-lg overflow-hidden">
+                <div className="px-6 py-4">
+                    <div className="flex items-center space-x-4">
+                        <input
+                            type="text"
+                            value={searchValue}
+                            onChange={(e) => setSearchValue(e.target.value)}
+                            className="px-4 py-2 border border-gray-600 rounded-md bg-gray-700 text-white flex-1"
+                            placeholder="Введите значение для поиска"
+                        />
+                        <input
+                            type="date"
+                            value={startDate || ''}
+                            onChange={handleStartDateChange}
+                            className="px-4 py-2 border border-gray-600 rounded-md bg-gray-700 text-white"
+                        />
+                        <input
+                            type="date"
+                            value={endDate || ''}
+                            onChange={handleEndDateChange}
+                            className="px-4 py-2 border border-gray-600 rounded-md bg-gray-700 text-white"
+                        />
+                        <select
+                            value={supplierFilter || ''}
+                            onChange={(e) => setSupplierFilter(e.target.value || null)}
+                            className="px-4 py-2 border border-gray-600 rounded-md bg-gray-700 text-white"
+                        >
+                            <option value="">Все поставщики</option>
+                            <option value="EXIST">EXIST</option>
+                            <option value="EMEX">EMEX</option>
+                            <option value="ZZAP">ZZAP</option>
+                            <option value="AUTODOC">AUTODOC</option>
+                        </select>
+                        <Button
+                            onClick={() => router.push(DASHBOARD_PAGES.ORDERDETAILVIEW)}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                        >
+                            Создать новый заказ
                         </Button>
                     </div>
                 </div>
-                <div className='my-3 h-0.5 bg-border w-full' />
-            </div>
-            <div className="max-w-8xl w-full mx-auto space-y-8">
-                <div className="shadow-md rounded-lg overflow-hidden">
-                    <div className="px-6 py-4">
-                        <div className="flex items-center space-x-4">
-                            <input
-                                type="text"
-                                value={searchValue}
-                                onChange={(e) => setSearchValue(e.target.value)}
-                                className="px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 flex-1 bg-gray-700 text-white"
-                                placeholder="Введите значение для поиска"
-                            />
-                            <input
-                                type="date"
-                                value={startDate || ''}
-                                onChange={handleStartDateChange}
-                                className="px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white"
-                            />
-                            <input
-                                type="date"
-                                value={endDate || ''}
-                                onChange={handleEndDateChange}
-                                className="px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white"
-                            />
-                            <select
-                                value={supplierFilter || ''}
-                                onChange={(e) => setSupplierFilter(e.target.value || null)}
-                                className="px-4 py-2 border border-gray-600 rounded-md bg-gray-700 text-white"
-                            >
-                                <option value="">Все поставщики</option>
-                                <option value="EXIST">EXIST</option>
-                                <option value="EMEX">EMEX</option>
-                                <option value="ZZAP">ZZAP</option>
-                                <option value="AUTODOC">AUTODOC</option>
-                            </select>
-                            <Button
-                                onClick={() => router.push(DASHBOARD_PAGES.ORDERDETAILVIEW)}
-                                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300"
-                            >
-                                Создать новый заказ
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="px-6 py-4">
-                        {Object.keys(groupedOrders).map(client => (
-                            <div key={client} className="mb-8">
-                                <div className="flex justify-between items-center cursor-pointer" onClick={() => toggleClient(client)}>
-                                    <h2 className="text-xl font-medium">{client}</h2>
-                                    <span>{expandedClients[client] ? '−' : '+'}</span>
-                                </div>
-                                {expandedClients[client] && (
-                                    <table className="min-w-full divide-y divide-gray-700 mt-2">
-                                        <thead className="bg-gray-700">
-                                        <tr>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">id</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">клиент</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">статус</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">дата заказа</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Кол-во артикулов</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Сумма</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Номер УПД</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody className="bg-gray-800 divide-y divide-gray-700">
-                                        {groupedOrders[client].map((order) => (
-                                            <tr key={order.id} onClick={() => viewOrderDetails(order.id)} className="cursor-pointer hover:bg-gray-700">
-                                                <td className="px-6 py-4 whitespace-nowrap">{order.id}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">{order.client}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">{order.status}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">{format(new Date(order.date), 'dd.MM.yyyy', { locale: ru })}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">{order.articles}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">{order.sum}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">{order.upl}</td>
-                                            </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </div>
+                <div className="px-6 py-4">
+                    <table className="min-w-full divide-y divide-gray-700">
+                        <thead className="bg-gray-700">
+                        <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">id</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">клиент</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">статус</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">дата заказа</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Кол-во артикулов</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Сумма</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Номер УПД</th>
+                        </tr>
+                        </thead>
+                        <tbody className="bg-gray-800 divide-y divide-gray-700">
+                        {filteredOrders.map((order) => (
+                            <tr key={order.id} onClick={() => viewOrderDetails(order.id)} className="cursor-pointer hover:bg-gray-700">
+                                <td className="px-6 py-4 text-xs whitespace-nowrap">{order.id}</td>
+                                <td className="px-6 py-4 text-xs whitespace-nowrap">{order.client}</td>
+                                <td className="px-6 py-4 text-xs whitespace-nowrap">{order.status}</td>
+                                <td className="px-6 py-4 text-xs whitespace-nowrap">{format(new Date(order.date), 'dd.MM.yyyy', { locale: ru })}</td>
+                                <td className="px-6 py-4 text-xs whitespace-nowrap">{order.articles}</td>
+                                <td className="px-6 py-4 text-xs whitespace-nowrap">{order.sum}</td>
+                                <td className="px-6 py-4 text-xs whitespace-nowrap">{order.upl}</td>
+                            </tr>
                         ))}
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

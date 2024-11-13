@@ -2,9 +2,9 @@
 
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/buttons/Button'
 import Loader from "@/components/ui/Loader/loader";
-import productsData from './products.json'
+import { Button } from "@/components/ui/buttons/Button";
+import {useRouter} from "next/navigation";
 
 interface LeftOvers {
 	product_id: string
@@ -13,39 +13,43 @@ interface LeftOvers {
 	product_price: string
 	product_amount: string
 	product_brand: string
-	product_update_date:string
+	product_update_date: string
+	product_update_time: string
 	warehouse: string
 }
+
 export function LeftoversView() {
 	const [leftOversItems, setLeftOversItems] = useState<LeftOvers[]>([])
 	const [searchValue, setSearchValue] = useState('')
-	const [statusFilter, setStatusFilter] = useState<string >('')
+	const [statusFilter, setStatusFilter] = useState<string>('')
 	const [selectedBrand, setSelectedBrand] = useState<string>('')
 
 	const [loading, setLoading] = useState(true)
 	const [currentPage, setCurrentPage] = useState(1)
 	const itemsPerPage = 100
 
-	 useEffect(() => {
+	// State для сортировки
+	const [sortColumn, setSortColumn] = useState<keyof LeftOvers | ''>('')
+	const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+
+	const router = useRouter()
+
+	useEffect(() => {
 		const fetchData = async () => {
-	 		setLoading(true)
-	 		try {
-	 			// URL изменен для получения JSON данных
-	 			const response = await axios.get('/new_age/products.php')
-	 			const data = response.data
+			setLoading(true)
+			try {
+				const response = await axios.get('/new_age/products.php')
+				const data = response.data
+				setLeftOversItems(data)
+			} catch (error) {
+				console.error('Ошибка при получении данных:', error)
+			} finally {
+				setLoading(false)
+			}
+		}
 
-	 			// Устанавливаем полученные данные
-	 			setLeftOversItems(data)
-	 		} catch (error) {
-	 			console.error('Ошибка при получении данных:', error)
-	 		} finally {
-	 			setLoading(false)
-	 		}
-	 	}
-
-	 	fetchData()
-	 }, [])
-
+		fetchData()
+	}, [])
 
 	const filterItems = (items: LeftOvers[]) => {
 		if (!statusFilter) return items
@@ -66,17 +70,50 @@ export function LeftoversView() {
 		)
 	}
 
-	const uniqueBrands = Array.from(new Set(leftOversItems.map(item => item.product_brand)))
+	// Получаем уникальные бренды и сортируем их по алфавиту
+	const uniqueBrands = Array.from(new Set(leftOversItems.map(item => item.product_brand))).sort()
 
 	const filteredItems = filterItems(leftOversItems)
 	const brandFilteredItems = filterByBrand(filteredItems)
 	const searchedItems = searchItems(brandFilteredItems)
 
-	// Пагинация
-	const totalPages = Math.ceil(searchedItems.length / itemsPerPage)
+	const totalItems = searchedItems.length
+	const totalPages = Math.ceil(totalItems / itemsPerPage)
 	const indexOfLastItem = currentPage * itemsPerPage
 	const indexOfFirstItem = indexOfLastItem - itemsPerPage
-	const currentItems = searchedItems.slice(indexOfFirstItem, indexOfLastItem)
+
+	// Функция сортировки
+	const sortItems = (items: LeftOvers[]) => {
+		if (!sortColumn) return items
+		return [...items].sort((a, b) => {
+			let valueA: any = a[sortColumn]
+			let valueB: any = b[sortColumn]
+
+			// Проверяем, является ли столбец датой или временем
+			if (sortColumn === 'product_update_date' || sortColumn === 'product_update_time') {
+				const dateA = new Date(`${a.product_update_date} ${a.product_update_time}`)
+				const dateB = new Date(`${b.product_update_date} ${b.product_update_time}`)
+				valueA = dateA.getTime()
+				valueB = dateB.getTime()
+			}
+
+			if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1
+			if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1
+			return 0
+		})
+	}
+
+	const sortedItems = sortItems(searchedItems)
+	const currentItems = sortedItems.slice(indexOfFirstItem, indexOfLastItem)
+
+	const handleSort = (column: keyof LeftOvers) => {
+		if (sortColumn === column) {
+			setSortOrder(prevOrder => (prevOrder === 'asc' ? 'desc' : 'asc'))
+		} else {
+			setSortColumn(column)
+			setSortOrder('asc')
+		}
+	}
 
 	const handleNextPage = () => {
 		if (currentPage < totalPages) {
@@ -94,7 +131,7 @@ export function LeftoversView() {
 		<div>
 			<div>
 				<div className='flex'>
-					<h1 className='text-3xl font-medium'>Склады</h1>
+					<h1 className='text-3xl font-medium'>Склады ({totalItems})</h1>
 				</div>
 				<div className='my-3 h-0.5 bg-border w-full' />
 			</div>
@@ -127,6 +164,10 @@ export function LeftoversView() {
 							<option key={brand} value={brand}>{brand}</option>
 						))}
 					</select>
+
+					<Button onClick={event => window.open("http://147.45.153.94/new_age/parse_post_files/show_parsing.php", "_blank")}>
+						Лог
+					</Button>
 				</div>
 
 				{loading ? (
@@ -136,23 +177,26 @@ export function LeftoversView() {
 						<table className='min-w-full divide-y divide-gray-700 mt-2'>
 							<thead className='bg-gray-700'>
 							<tr>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+								<th onClick={() => handleSort('product_name')} className='px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'>
 									Наименование
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+								<th onClick={() => handleSort('product_article')} className='px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'>
 									Артикул
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+								<th onClick={() => handleSort('product_brand')} className='px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'>
 									Бренд
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+								<th onClick={() => handleSort('product_amount')} className='px-6 py-3 text-center text-xs  font-medium text-gray-400 uppercase tracking-wider cursor-pointer'>
 									Количество
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+								<th onClick={() => handleSort('product_price')} className='px-6 py-3 text-center text-xs  font-medium text-gray-400 uppercase tracking-wider cursor-pointer'>
 									Цена
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+								<th onClick={() => handleSort('product_update_date')} className='px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'>
 									Дата обновления
+								</th>
+								<th onClick={() => handleSort('product_update_date')} className='px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'>
+									Время обновления
 								</th>
 							</tr>
 							</thead>
@@ -166,15 +210,18 @@ export function LeftoversView() {
 							) : (
 								currentItems.map(item => (
 									<tr key={item.product_article}>
-										<td className='px-6 py-4 whitespace-wrap'>{item.product_name}</td>
-										<td className='px-6 py-4 whitespace-nowrap'>
+										<td className='px-6 py-4 text-xs text-center whitespace-wrap'>{item.product_name}</td>
+										<td className='px-6 py-4 text-xs text-center whitespace-nowrap'>
 											{item.product_article}
 										</td>
-										<td className='px-6 py-4 whitespace-nowrap'>{item.product_brand}</td>
-										<td className='px-6 py-4 whitespace-nowrap'>{item.product_amount}</td>
-										<td className='px-6 py-4 whitespace-nowrap'>{item.product_price}</td>
-										<td className='px-6 py-4 whitespace-nowrap'>
+										<td className='px-6 py-4 text-xs text-center whitespace-nowrap'>{item.product_brand}</td>
+										<td className='px-6 py-4 text-xs text-center whitespace-nowrap'>{item.product_amount}</td>
+										<td className='px-6 py-4 text-xs text-center whitespace-nowrap'>{item.product_price}</td>
+										<td className='px-6 py-4 text-xs text-center whitespace-nowrap'>
 											{item.product_update_date}
+										</td>
+										<td className='px-6 py-4 text-xs text-center whitespace-nowrap'>
+											{item.product_update_time}
 										</td>
 									</tr>
 								))

@@ -30,7 +30,6 @@ export function NomenclatureView() {
 
 
 
-
     const handleAdd = async () => {
         try {
             const url = '/new_age/API/nomenclature/sync_nomenclature.php';
@@ -254,15 +253,15 @@ export function NomenclatureView() {
                                                 onChange={() => handleCheckboxChange(index)}
                                             />
                                         </td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">{item.nomenclature_brand}</td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">{item.nomenclature_number}</td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">{item.nomenclature_brand_steels}</td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">{item.nomenclature_name}</td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">{item.nomenclature_link1}</td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">{item.nomenclature_link2}</td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">{item.nomenclature_unit}</td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">{item.nomenclature_add_date}</td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">
+                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_brand}</td>
+                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_number}</td>
+                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_brand_steels}</td>
+                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_name}</td>
+                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_link1}</td>
+                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_link2}</td>
+                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_unit}</td>
+                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_add_date}</td>
+                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">
                                             {selectedRows.has(index) && (
                                                 <div className={"flex flex-wrap justify-center items-center"}>
 
