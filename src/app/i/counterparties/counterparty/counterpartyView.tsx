@@ -90,6 +90,7 @@ export function CounterpartyView() {
 		}
 
 		// Проверки уникальности
+		// @ts-ignore
 		const nameExists = existingCounterparties.some(counterparty => counterparty.counterparty_name === name);
 		// const innExists = existingCounterparties.some(counterparty => counterparty.inn === inn);
 

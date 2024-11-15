@@ -13,6 +13,7 @@ type Counterparty = {
 	id: string
 	type: string
 	name: string
+	warehouse_number:string
 	INN: string
 	email: { id: number; value: string; type: string }[]
 	phone: { id: number; value: string; type: string }[]
@@ -40,6 +41,7 @@ export function CounterPartiesView() {
 					id: item.contragent_id,
 					type: item.contragent_type,
 					name: item.contragent_name,
+					warehouse_number: item.contragent_warehouse_number,
 					INN: item.contragent_inn,
 					email: item.emails.map((email: any, index: number) => ({
 						id: email.id || 0,
@@ -53,6 +55,7 @@ export function CounterPartiesView() {
 					}))
 				}))
 				setData(transformedData)
+				console.log(transformedData)
 			})
 			.catch(error => console.error('Ошибка при загрузке контрагентов:', error))
 	}, [])
@@ -126,6 +129,7 @@ export function CounterPartiesView() {
 				body: JSON.stringify({
 					contragent_id: editCounterparty.id,
 					contragent_name: editCounterparty.name,
+					contragent_warehouse_number: editCounterparty.warehouse_number,
 					contragent_type: editCounterparty.type,
 					contragent_inn: editCounterparty.INN,
 					contragent_phones: updatedPhones,
@@ -146,6 +150,7 @@ export function CounterPartiesView() {
 									? {
 										...contragent,
 										name: editCounterparty.name,
+										contragent_warehouse_number: editCounterparty.warehouse_number,
 										type: editCounterparty.type,
 										INN: editCounterparty.INN,
 										phone: updatedPhones,
@@ -326,6 +331,7 @@ export function CounterPartiesView() {
 								</th>
 								<th className='px-6 py-3 text-xs text-center'>Тип</th>
 								<th className='px-6 py-3 text-xs text-center'>Наименование</th>
+								<th className='px-6 py-3 text-xs text-center'>Номер склада</th>
 								<th className='px-6 py-3 text-xs text-center'>ИНН</th>
 								<th className='px-6 py-3 text-xs text-center'>Почта</th>
 								<th className='px-6 py-3 text-xs text-center'>Телефон</th>
@@ -344,6 +350,7 @@ export function CounterPartiesView() {
 									</td>
 									<td className='px-6 py-4 text-xs text-center'>{contragent.type}</td>
 									<td className='px-6 py-4 text-xs text-center'>{contragent.name}</td>
+									<td className='px-6 py-4 text-xs text-center'>{contragent.warehouse_number}</td>
 									<td className='px-6 py-4 text-xs text-center'>{contragent.INN}</td>
 									<td className='px-6 py-4 text-xs text-center'>
 										{contragent.email.map(e => e.value).join(', ')}
@@ -380,93 +387,130 @@ export function CounterPartiesView() {
 				{/* Модальное окно для редактирования контрагента */}
 				<Transition show={isOpen}>
 					<Dialog
-						as='div'
-						className='fixed inset-0 z-10 overflow-y-auto backdrop-blur'
+						as="div"
+						className="fixed inset-0 z-10 overflow-y-auto backdrop-blur"
 						onClose={() => setIsOpen(false)}
 					>
-						<div className='flex items-center justify-center min-h-screen'>
-							<Dialog.Panel className='bg-gray-800 rounded-lg w-3/4 max-w-2xl mx-auto p-8'>
-								<Dialog.Title className='text-lg font-medium text-white'>
+						<div className="flex items-center justify-center min-h-screen">
+							<Dialog.Panel className="bg-gray-800 rounded-lg w-3/4 max-w-2xl mx-auto p-8">
+								<Dialog.Title className="text-lg font-medium text-white">
 									Редактировать контрагента
 								</Dialog.Title>
-								<div className='mt-4'>
+								<div className="mt-4">
 									<div>
-										<label className='block text-sm font-medium text-gray-300'>
+										<label className="block text-sm font-medium text-gray-300">
 											Наименование
 										</label>
 										<input
-											type='text'
-											value={editCounterparty?.name || ''}
-											onChange={e =>
-												setEditCounterparty(prevState => prevState ? {
-													...prevState,
-													name: e.target.value
-												} : null)
+											type="text"
+											value={editCounterparty?.name || ""}
+											onChange={(e) =>
+												setEditCounterparty((prevState) =>
+													prevState
+														? {
+															...prevState,
+															name: e.target.value,
+														}
+														: null
+												)
 											}
-											className='mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md'
+											className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
 										/>
 									</div>
-									<div className='mt-4'>
-										<label className='block text-sm font-medium text-gray-300'>
+									<div className="mt-4">
+										<label className="block text-sm font-medium text-gray-300">
 											ИНН
 										</label>
 										<input
-											type='text'
-											value={editCounterparty?.INN || ''}
-											onChange={e =>
-												setEditCounterparty(prevState => prevState ? {
-													...prevState,
-													INN: e.target.value
-												} : null)
+											type="text"
+											value={editCounterparty?.INN || ""}
+											onChange={(e) =>
+												setEditCounterparty((prevState) =>
+													prevState
+														? {
+															...prevState,
+															INN: e.target.value,
+														}
+														: null
+												)
 											}
-											className='mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md'
+											className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
 										/>
 									</div>
 
-									<div className='mt-4'>
-										<label className='block text-sm font-medium text-gray-300'>
+									<div className="mt-4">
+										<label className="block text-sm font-medium text-gray-300">
 											Тип контрагента
 										</label>
 										<select
-											value={editCounterparty?.type || ''}
-											onChange={e =>
-												setEditCounterparty(prevState => prevState ? {
-													...prevState,
-													type: e.target.value
-												} : null)
+											value={editCounterparty?.type || ""}
+											onChange={(e) =>
+												setEditCounterparty((prevState) =>
+													prevState
+														? {
+															...prevState,
+															type: e.target.value,
+														}
+														: null
+												)
 											}
-											className='mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md'
+											className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
 										>
-											<option value=''>Выберите тип</option>
-											<option value='Склад'>Склад</option>
-											<option value='Клиент'>Клиент</option>
-											<option value='Поставщик'>Поставщик</option>
-											<option value='Наша компания'>Наша компания</option>
+											<option value="">Выберите тип</option>
+											<option value="Склад">Склад</option>
+											<option value="Клиент">Клиент</option>
+											<option value="Поставщик">Поставщик</option>
+											<option value="Наша компания">Наша компания</option>
 										</select>
 									</div>
 
-									<div className='mt-4'>
-										{/* Редактирование телефонов */}
-										<label className='block text-sm font-medium text-gray-300'>Телефоны</label>
+
+									{editCounterparty?.type === "Склад" && (
+										<div className="mt-4">
+											<label className="block text-sm font-medium text-gray-300">
+												Номер склада
+											</label>
+											<input
+												value={editCounterparty?.warehouse_number || ""}
+												onChange={(e) =>
+													setEditCounterparty((prevState) =>
+														prevState
+															? {
+																...prevState,
+																warehouse_number: e.target.value
+															}
+															: null
+													)
+												}
+												className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
+											/>
+										</div>
+									)}
+
+									{/* Редактирование телефонов */}
+									<div className="mt-4">
+										<label className="block text-sm font-medium text-gray-300">
+											Телефоны
+										</label>
 										{editCounterparty?.phone.map((phone, index) => (
-											<div key={index} className='flex space-x-2 mb-2'>
+											<div key={index} className="flex space-x-2 mb-2">
 												<input
-													type='text'
+													type="text"
 													value={phone.value}
-													onChange={e => handleChangePhone(e, index)}
-													className='px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md'
+													onChange={(e) => handleChangePhone(e, index)}
+													className="px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
 												/>
 												<select
 													value={phone.type}
-													onChange={e => handleChangePhoneType(e, index)}
-													className='px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md'
+													onChange={(e) => handleChangePhoneType(e, index)}
+													className="px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
 												>
-													<option value='Основной'>Основной</option>
-													<option value='Дополнительный'>Дополнительный</option>
+													<option value="Основной">Основной</option>
+													<option value="Дополнительный">Дополнительный</option>
 												</select>
 												<button
 													onClick={() => handleRemovePhone(index)}
-													className='bg-red-500 text-white px-2 py-1 rounded-md'
+													className="bg-red-500 text-white px-2 py-1 rounded-md"
 													disabled={editCounterparty.phone.length <= 1}
 												>
 													Удалить
@@ -480,64 +524,28 @@ export function CounterPartiesView() {
 											>
 												Добавить телефон
 											</button>
-										) : editCounterparty?.phone?.length === 0 && (
-											<button
-												onClick={handleAddPhone}
-												className="bg-green-500 text-white px-4 py-2 rounded-md mt-2"
-											>
-												Добавить телефон
-											</button>
+										) : (
+											editCounterparty?.phone?.length === 0 && (
+												<button
+													onClick={handleAddPhone}
+													className="bg-green-500 text-white px-4 py-2 rounded-md mt-2"
+												>
+													Добавить телефон
+												</button>
+											)
 										)}
 									</div>
 
-									{/*/!* Редактирование почт *!/*/}
-									{/*<div className='mt-4'>*/}
-									{/*	<label className='block text-sm font-medium text-gray-300'>Почта</label>*/}
-									{/*	{editCounterparty?.email.map((email, index) => (*/}
-									{/*		<div key={index} className='flex space-x-2 mb-2'>*/}
-									{/*			<input*/}
-									{/*				type='email'*/}
-									{/*				value={email.value}*/}
-									{/*				onChange={e => handleChangeEmail(e, index)}*/}
-									{/*				className='px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md'*/}
-									{/*			/>*/}
-									{/*			<select*/}
-									{/*				value={email.type}*/}
-									{/*				onChange={e => handleChangeEmailType(e, index)}*/}
-									{/*				className='px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md'*/}
-									{/*			>*/}
-									{/*				<option value='work'>Рабочий</option>*/}
-									{/*				<option value='private'>Личный</option>*/}
-									{/*			</select>*/}
-									{/*			<button*/}
-									{/*				onClick={() => handleRemoveEmail(index)}*/}
-									{/*				className='bg-red-500 text-white px-2 py-1 rounded-md'*/}
-									{/*				disabled={editCounterparty.email.length <= 1}*/}
-									{/*			>*/}
-									{/*				Удалить*/}
-									{/*			</button>*/}
-									{/*		</div>*/}
-									{/*	))}*/}
-									{/*	{editCounterparty?.email.length < 2 && (*/}
-									{/*		<button*/}
-									{/*			onClick={handleAddEmail}*/}
-									{/*			className='bg-green-500 text-white px-4 py-2 rounded-md mt-2'*/}
-									{/*		>*/}
-									{/*			Добавить почту*/}
-									{/*		</button>*/}
-									{/*	)}*/}
-									{/*</div>*/}
-
-									<div className='mt-6 flex justify-end space-x-4'>
+									<div className="mt-6 flex justify-end space-x-4">
 										<Button
 											onClick={() => setIsOpen(false)}
-											className='px-4 py-2 bg-gray-500 text-white rounded-md'
+											className="px-4 py-2 bg-gray-500 text-white rounded-md"
 										>
 											Отмена
 										</Button>
 										<Button
 											onClick={handleSaveEdit}
-											className='px-4 py-2 bg-blue-500 text-white rounded-md'
+											className="px-4 py-2 bg-blue-500 text-white rounded-md"
 										>
 											Сохранить
 										</Button>
@@ -547,6 +555,7 @@ export function CounterPartiesView() {
 						</div>
 					</Dialog>
 				</Transition>
+
 			</div>
 		</div>
 	)

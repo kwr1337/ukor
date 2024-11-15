@@ -12,12 +12,34 @@ export function NomenclatureView() {
     const [isOpen, setIsOpen] = useState(false); // For modals
     const [editData, setEditData] = useState<any | null>(null); // For editing
     const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set()); // Selected rows
+    const [currentPage, setCurrentPage] = useState(1); // Current page
+    const [totalPages, setTotalPages] = useState(1); // Total number of pages
+    const [isLoading, setIsLoading] = useState(false); // Loading state
+
+    const itemsPerPage = 100; // Items per page
+    useEffect(() => {
+        fetchData();
+    }, [currentPage]);
+
+
+    const filteredOrders = data.filter(item =>
+        Object.keys(item).some(key =>
+            item[key]?.toString().toLowerCase().includes(searchValue.toLowerCase())
+        ) &&
+        (!selectedCBrand || item.nomenclature_brand === selectedCBrand)
+    );
+
+
+
+
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const response = await axios.get('/new_age/API/nomenclature/get_nomenclature.php');
-                setData(response.data); // Update the state with the fetched data
+                const allData = response.data;
+                setData(allData);
+                setTotalPages(Math.ceil(allData.length / itemsPerPage));
             } catch (error) {
                 console.error("Error fetching nomenclature data", error);
             }
@@ -26,8 +48,24 @@ export function NomenclatureView() {
     }, []);
 
 
-    const uniqueClients = Array.from(new Set(data.map(item => item.nomenclature_brand)));
+    const uniqueClients = Array.from(new Set(data.map(item => item.nomenclature_brand).sort()));
 
+    const handlePrevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const paginatedOrders = filteredOrders.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
 
     const handleAdd = async () => {
@@ -170,13 +208,7 @@ export function NomenclatureView() {
         }
     };
 
-    const filteredOrders = data.filter(item =>
-        // Преобразуем значение поиска в нижний регистр для поиска по всем полям
-        Object.keys(item).some(key =>
-            item[key]?.toString().toLowerCase().includes(searchValue.toLowerCase())
-        ) &&
-        (!selectedCBrand || item.nomenclature_brand === selectedCBrand)
-    );
+
 
     return (
         <div>
@@ -226,42 +258,54 @@ export function NomenclatureView() {
                             <table className="min-w-full divide-y divide-gray-700 mt-4">
                                 <thead className="bg-gray-700">
                                 <tr>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
+                                    <th className="px-6 py-3 text-xs text-center">
                                         <input
                                             type="checkbox"
                                             onChange={handleSelectAll}
                                         />
                                     </th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Производитель</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Номер номенклатуры </th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Производитель Steels</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Наименование</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Ссылка 1</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Ссылка 2</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Единица измерения</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Дата регистрации</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider"></th>
+                                    <th className="px-6 py-3 text-xs text-center ">Производитель</th>
+                                    <th className="px-6 py-3 text-xs text-center ">Номер
+                                        номенклатуры
+                                    </th>
+                                    <th className="px-6 py-3 text-xs text-center">Производитель
+                                        Steels
+                                    </th>
+                                    <th className="px-6 py-3 text-xs text-center ">Наименование</th>
+                                    <th className="px-6 py-3 text-xs text-center ">Ссылка
+                                        1
+                                    </th>
+                                    <th className="px-6 py-3 text-xs text-center ">Ссылка
+                                        2
+                                    </th>
+                                    <th className="px-6 py-3 text-xs text-center">Единица
+                                        измерения
+                                    </th>
+                                    <th className="px-6 py-3 text-xs text-center">Дата
+                                        регистрации
+                                    </th>
+                                    <th className="px-6 py-3 text-xs text-center "></th>
                                 </tr>
                                 </thead>
                                 <tbody className="bg-gray-800 divide-y divide-gray-700">
-                                {filteredOrders.map((item, index) => (
+                                {paginatedOrders.map((item, index) => (
                                     <tr key={index}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-6 py-4">
                                             <input
                                                 type="checkbox"
                                                 checked={selectedRows.has(index)}
                                                 onChange={() => handleCheckboxChange(index)}
                                             />
                                         </td>
-                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_brand}</td>
-                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_number}</td>
-                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_brand_steels}</td>
-                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_name}</td>
-                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_link1}</td>
-                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_link2}</td>
-                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_unit}</td>
-                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">{item.nomenclature_add_date}</td>
-                                        <td className="px-6 py-4 text-center text-xs whitespace-nowrap">
+                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_brand}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_number}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_brand_steels}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_name}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_link1}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_link2}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_unit}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_add_date}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">
                                             {selectedRows.has(index) && (
                                                 <div className={"flex flex-wrap justify-center items-center"}>
 
@@ -287,11 +331,31 @@ export function NomenclatureView() {
                             </table>
                         </div>
                     </div>
+                    <div className="flex justify-between items-center mt-4">
+                        <button
+                            onClick={handlePrevPage}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-gray-700 text-white rounded-md disabled:opacity-50"
+                        >
+                            Предыдущая
+                        </button>
+                        <span className="text-sm text-gray-300">
+                            Страница {currentPage} из {totalPages}
+                        </span>
+                        <button
+                            onClick={handleNextPage}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 bg-gray-700 text-white rounded-md disabled:opacity-50"
+                        >
+                            Следующая
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <Transition show={isOpen} as={React.Fragment}>
-                <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto backdrop-blur" onClose={() => setIsOpen(false)}>
+                <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto backdrop-blur"
+                        onClose={() => setIsOpen(false)}>
                     <div className="flex items-center justify-center min-h-screen p-4">
                         <Dialog.Panel className="bg-gray-800 rounded-lg w-3/4 max-w-2xl mx-auto p-8">
                             <Dialog.Title className="text-lg font-medium text-white">
