@@ -3,9 +3,8 @@
 import { Dialog, Transition } from '@headlessui/react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
-
+import Tooltip from '@mui/material/Tooltip';
 import { Button } from '@/components/ui/buttons/Button'
-
 import { DASHBOARD_PAGES } from '@/config/pages-url.config'
 import axios from "axios";
 
@@ -31,6 +30,9 @@ export function CounterPartiesView() {
 	const [searchValue, setSearchValue] = useState('')
 	const [statusFilter, setStatusFilter] = useState<string | null>(null)
 	const router = useRouter()
+	const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+	const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+	const [counterpartyToDelete, setCounterpartyToDelete] = useState<Counterparty | null>(null);
 
 
 	useEffect(() => {
@@ -65,27 +67,43 @@ export function CounterPartiesView() {
 		setIsOpen(true)
 	}
 
+	const handleDeleteConfirmOpen = (counterparty: Counterparty) => {
+		setCounterpartyToDelete(counterparty);
+		setIsDeleteConfirmOpen(true);
+	};
+
+
+	const handleDeleteConfirm = () => {
+		if (counterpartyToDelete) {
+			handleDeleteCounterparty(counterpartyToDelete.id);
+			setIsDeleteConfirmOpen(false);
+		}
+	};
+
+	const handleDeleteCancel = () => {
+		setIsDeleteConfirmOpen(false);
+	};
+
+
+
 	const handleDeleteCounterparty = (id: any) => {
-		// Отправка запроса на удаление контрагента на сервер
 		fetch('/new_age/API/contragents/delete_contragent.php', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify({
-				contragent_id: id, // передаем ID контрагента для удаления
+				contragent_id: id,
 			}),
 		})
 			.then((response) => {
 				if (!response.ok) {
 					throw new Error(`Ошибка HTTP: ${response.status}`);
 				}
-				return response.json(); // Получаем JSON из ответа
+				return response.json();
 			})
 			.then((jsonResult) => {
-				// Проверяем успешность операции
 				if (jsonResult.result === true) {
-					// Удаляем контрагента из состояния
 					setData((prevData) =>
 						prevData.filter((contragent) => contragent.id !== id)
 					);
@@ -158,7 +176,7 @@ export function CounterPartiesView() {
 									: contragent
 							)
 						);
-						setIsOpen(false); // Закрытие модального окна
+						setIsOpen(false);
 					} else {
 						console.error('Ошибка при обновлении контрагента:', jsonResult.message || 'Неизвестная ошибка');
 					}
@@ -190,7 +208,7 @@ export function CounterPartiesView() {
 	const handleChangePhone = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
 		if (editCounterparty) {
 			const updatedPhones = [...editCounterparty.phone];
-			updatedPhones[index] = { ...updatedPhones[index], value: e.target.value }; // сохраняем id, обновляем value
+			updatedPhones[index] = { ...updatedPhones[index], value: e.target.value };
 			setEditCounterparty({ ...editCounterparty, phone: updatedPhones });
 		}
 	};
@@ -198,7 +216,7 @@ export function CounterPartiesView() {
 	const handleChangePhoneType = (e: React.ChangeEvent<HTMLSelectElement>, index: number) => {
 		if (editCounterparty) {
 			const updatedPhones = [...editCounterparty.phone];
-			updatedPhones[index] = { ...updatedPhones[index], type: e.target.value }; // сохраняем id, обновляем type
+			updatedPhones[index] = { ...updatedPhones[index], type: e.target.value };
 			setEditCounterparty({ ...editCounterparty, phone: updatedPhones });
 		}
 	};
@@ -206,7 +224,7 @@ export function CounterPartiesView() {
 	const handleChangeEmail = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
 		if (editCounterparty) {
 			const updatedEmails = [...editCounterparty.email];
-			updatedEmails[index] = { ...updatedEmails[index], value: e.target.value }; // сохраняем id, обновляем value
+			updatedEmails[index] = { ...updatedEmails[index], value: e.target.value };
 			setEditCounterparty({ ...editCounterparty, email: updatedEmails });
 		}
 	};
@@ -214,7 +232,7 @@ export function CounterPartiesView() {
 	const handleChangeEmailType = (e: React.ChangeEvent<HTMLSelectElement>, index: number) => {
 		if (editCounterparty) {
 			const updatedEmails = [...editCounterparty.email];
-			updatedEmails[index] = { ...updatedEmails[index], type: e.target.value }; // сохраняем id, обновляем type
+			updatedEmails[index] = { ...updatedEmails[index], type: e.target.value };
 			setEditCounterparty({ ...editCounterparty, email: updatedEmails });
 		}
 	};
@@ -225,7 +243,7 @@ export function CounterPartiesView() {
 				...editCounterparty,
 				phone: [
 					...editCounterparty.phone,
-					{ id: 0, value: '', type: 'work' } // добавляем новый телефон
+					{ id: 0, value: '', type: 'work' }
 				]
 			});
 		}
@@ -244,7 +262,7 @@ export function CounterPartiesView() {
 				...editCounterparty,
 				email: [
 					...editCounterparty.email,
-					{ id: 0, value: '', type: 'work' } // добавляем новый email
+					{ id: 0, value: '', type: 'work' }
 				]
 			});
 		}
@@ -260,6 +278,34 @@ export function CounterPartiesView() {
 	const handleCreate = () => {
 		router.push(DASHBOARD_PAGES.COUNTERPARTYVIEW)
 	}
+
+	const sortedData = React.useMemo(() => {
+		let sortableData = [...filteredOrders];
+		if (sortConfig !== null) {
+			sortableData.sort((a, b) => {
+				// @ts-ignore
+				if (a[sortConfig.key] < b[sortConfig.key]) {
+					return sortConfig.direction === 'asc' ? -1 : 1;
+				}
+				// @ts-ignore
+				if (a[sortConfig.key] > b[sortConfig.key]) {
+					return sortConfig.direction === 'asc' ? 1 : -1;
+				}
+				return 0;
+			});
+		}
+		return sortableData;
+	}, [filteredOrders, sortConfig]);
+
+	const handleSort = (key: string) => {
+		let direction: 'asc' | 'desc' = 'asc';
+		if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+			direction = 'desc';
+		}
+		setSortConfig({ key, direction });
+	};
+
+
 
 	// @ts-ignore
 	return (
@@ -318,42 +364,73 @@ export function CounterPartiesView() {
 					</div>
 					<table className='min-w-full divide-y divide-gray-700'>
 						<thead className='bg-gray-700'>
-							<tr>
-								<th className='px-4 py-2'>
-									<input
-										type='checkbox'
-										onChange={e =>
-											setSelectedCounterparties(
-												e.target.checked ? data.map(d => d.id) : []
-											)
-										}
-									/>
-								</th>
-								<th className='px-6 py-3 text-xs text-center'>Тип</th>
-								<th className='px-6 py-3 text-xs text-center'>Наименование</th>
-								<th className='px-6 py-3 text-xs text-center'>Номер склада</th>
-								<th className='px-6 py-3 text-xs text-center'>ИНН</th>
-								<th className='px-6 py-3 text-xs text-center'>Почта</th>
-								<th className='px-6 py-3 text-xs text-center'>Телефон</th>
-								<th className='px-6 py-3 text-xs text-center'></th>
-							</tr>
+						<tr>
+							<th className='px-4 py-2'>
+								<input
+									type='checkbox'
+									onChange={e =>
+										setSelectedCounterparties(
+											e.target.checked ? data.map(d => d.id) : []
+										)
+									}
+								/>
+							</th>
+							<th className='px-4 py-3 text-xs text-center'
+								onClick={() => handleSort('type')}>
+								<Tooltip title="Сортировка по типу" arrow>
+									<span>Тип {sortConfig?.key === 'type' && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}</span>
+								</Tooltip>
+							</th>
+							<th className='px-6 py-3 text-xs text-center'
+								onClick={() => handleSort('name')}>
+								<Tooltip title="Сортировка по наименованию" arrow>
+									<span>Наименование {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}</span>
+								</Tooltip>
+							</th>
+							<th className='px-6 py-3 text-xs text-center'
+								onClick={() => handleSort('warehouse_number')}>
+								<Tooltip title="Сортировка по номеру склада" arrow>
+									<span>Номер склада {sortConfig?.key === 'warehouse_number' && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}</span>
+								</Tooltip>
+							</th>
+							<th className='px-6 py-3 text-xs text-center'
+								onClick={() => handleSort('INN')}>
+								<Tooltip title="Сортировка по ИНН" arrow>
+									<span>ИНН {sortConfig?.key === 'INN' && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}</span>
+								</Tooltip>
+							</th>
+							<th className='px-6 py-3 text-xs text-center'
+								onClick={() => handleSort('email')}>
+								<Tooltip title="Сортировка по почте" arrow>
+									<span>Почта {sortConfig?.key === 'email' && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}</span>
+								</Tooltip>
+							</th>
+							<th className='px-6 py-3 text-xs text-center'
+								onClick={() => handleSort('phone')}>
+								<Tooltip title="Сортировка по телефону" arrow>
+									<span>Телефон {sortConfig?.key === 'phone' && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}</span>
+								</Tooltip>
+							</th>
+
+							<th className='px-6 py-3 text-xs text-center'></th>
+						</tr>
 						</thead>
 						<tbody className='bg-gray-800 divide-y divide-gray-700'>
-							{filteredOrders.map(contragent => (
-								<tr key={contragent.id}>
-									<td className='px-4 py-4 text-center'>
-										<input
-											type='checkbox'
-											checked={selectedCounterparties.includes(contragent.id)}
-											onChange={() => handleCheckboxChange(contragent.id)}
-										/>
-									</td>
-									<td className='px-6 py-4 text-xs text-center'>{contragent.type}</td>
-									<td className='px-6 py-4 text-xs text-center'>{contragent.name}</td>
-									<td className='px-6 py-4 text-xs text-center'>{contragent.warehouse_number}</td>
-									<td className='px-6 py-4 text-xs text-center'>{contragent.INN}</td>
-									<td className='px-6 py-4 text-xs text-center'>
-										{contragent.email.map(e => e.value).join(', ')}
+						{sortedData.map(contragent => (
+							<tr key={contragent.id}>
+								<td className='px-4 py-4 text-center'>
+									<input
+										type='checkbox'
+										checked={selectedCounterparties.includes(contragent.id)}
+										onChange={() => handleCheckboxChange(contragent.id)}
+									/>
+								</td>
+								<td className='px-6 py-4 text-xs text-center'>{contragent.type}</td>
+								<td className='px-6 py-4 text-xs text-center'>{contragent.name}</td>
+								<td className='px-6 py-4 text-xs text-center'>{contragent.warehouse_number}</td>
+								<td className='px-6 py-4 text-xs text-center'>{contragent.INN}</td>
+								<td className='px-6 py-4 text-xs text-center'>
+									{contragent.email.map(e => e.value).join(', ')}
 									</td>
 									<td className='px-6 py-4 text-xs text-center'>
 										{contragent.phone.map(p => p.value).join(', ')}
@@ -368,13 +445,12 @@ export function CounterPartiesView() {
 													Редактировать
 												</Button>
 												<Button
-													onClick={() =>
-														handleDeleteCounterparty(contragent.id)
-													}
+													onClick={() => handleDeleteConfirmOpen(contragent)}
 													className='px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600'
 												>
 													Удалить
 												</Button>
+
 											</>
 										)}
 									</td>
@@ -555,6 +631,34 @@ export function CounterPartiesView() {
 						</div>
 					</Dialog>
 				</Transition>
+
+
+				<Transition show={isDeleteConfirmOpen} as={React.Fragment}>
+					<Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto backdrop-blur" onClose={setIsDeleteConfirmOpen}>
+						<div className="flex items-center justify-center min-h-screen p-4">
+							<span className="inline-block align-middle h-screen" aria-hidden="true">&#8203;</span>
+							<div className="bg-gray-800 rounded-lg w-3/4 max-w-md mx-auto p-6">
+								<Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-500">
+									Подтвердите удаление
+								</Dialog.Title>
+								<div className="mt-2">
+									<p className="text-sm text-gray-500">
+										Вы уверены, что хотите удалить контрагента {counterpartyToDelete?.name}? Это действие необратимо.
+									</p>
+								</div>
+								<div className="mt-4 flex space-x-4">
+									<Button onClick={handleDeleteCancel} className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500">
+										Отмена
+									</Button>
+									<Button onClick={handleDeleteConfirm} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
+										Удалить
+									</Button>
+								</div>
+							</div>
+						</div>
+					</Dialog>
+				</Transition>
+
 
 			</div>
 		</div>

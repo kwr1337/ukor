@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios'; // Import axios for making API calls
 import { Button } from "@/components/ui/buttons/Button";
 import { Dialog, Transition } from '@headlessui/react';
+import Tooltip from '@mui/material/Tooltip';
 
 export function NomenclatureView() {
     const [data, setData] = useState<any[]>([]); // State for storing the fetched data
@@ -15,11 +16,13 @@ export function NomenclatureView() {
     const [currentPage, setCurrentPage] = useState(1); // Current page
     const [totalPages, setTotalPages] = useState(1); // Total number of pages
     const [isLoading, setIsLoading] = useState(false); // Loading state
+    const [sortColumn, setSortColumn] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [itemsToDelete, setItemsToDelete] = useState<number[]>([]);
 
-    const itemsPerPage = 100; // Items per page
-    useEffect(() => {
-        fetchData();
-    }, [currentPage]);
+    const itemsPerPage = 100;
+
 
 
     const filteredOrders = data.filter(item =>
@@ -45,27 +48,21 @@ export function NomenclatureView() {
             }
         };
         fetchData();
-    }, []);
+    }, [currentPage]);
+
+
+    useEffect(() => {
+        setTotalPages(Math.ceil(filteredOrders.length / itemsPerPage));
+        if (currentPage > Math.ceil(filteredOrders.length / itemsPerPage)) {
+            setCurrentPage(1); // Сбрасываем на первую страницу, если текущая выходит за пределы
+        }
+    }, [filteredOrders]);
 
 
     const uniqueClients = Array.from(new Set(data.map(item => item.nomenclature_brand).sort()));
 
-    const handlePrevPage = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
-        }
-    };
 
-    const handleNextPage = () => {
-        if (currentPage < totalPages) {
-            setCurrentPage(currentPage + 1);
-        }
-    };
 
-    const paginatedOrders = filteredOrders.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
 
 
     const handleAdd = async () => {
@@ -128,6 +125,14 @@ export function NomenclatureView() {
 
 
     const handleSave = async () => {
+        const requiredFields = ['nomenclature_brand', 'nomenclature_number', 'nomenclature_name'];
+        const missingFields = requiredFields.filter(field => !editData?.[field]?.trim());
+
+        if (missingFields.length > 0) {
+            alert('Заполните обязательные поля: Производитель, Номер номенклатуры, Наименование');
+            return;
+        }
+
         if (editData?.id) {
             handleEdit();
         } else {
@@ -164,6 +169,8 @@ export function NomenclatureView() {
     };
 
 
+
+
     const handleAddOrEdit = (item: any = null) => {
         setEditData(item ? item : {
             nomenclature_number: '',
@@ -177,38 +184,108 @@ export function NomenclatureView() {
         setIsOpen(true);
     };
 
-    const handleDelete = async () => {
-        if (selectedRows.size > 0) {
 
-            const selectedItems = Array.from(selectedRows).map(index => filteredOrders[index].nomenclature_id);
+    const confirmDelete = (items: number[]) => {
+        setItemsToDelete(items);
+        setIsDeleteConfirmOpen(true);
+    };
 
-            try {
+    const handleConfirmedDelete = async () => {
+        try {
+            for (const id of itemsToDelete) {
+                const response = await axios.post('/new_age/API/nomenclature/delete_nomenclature.php', {
+                    nomenclature_id: id,
+                });
 
-                for (const id of selectedItems) {
-                    const response = await axios.post('/new_age/API/nomenclature/delete_nomenclature.php', {
-                        nomenclature_id: id, // Отправляем по одному ID
-                    });
-
-                    if (response.data.result) {
-                        console.log(`Номенклатура с ID ${id} успешно удалена`);
-                    } else {
-                        console.error(`Ошибка удаления номенклатуры с ID ${id}: `, response.data.message);
-                    }
+                if (response.data.result) {
+                    console.log(`Номенклатура с ID ${id} успешно удалена`);
+                } else {
+                    console.error(`Ошибка удаления номенклатуры с ID ${id}: `, response.data.message);
                 }
-
-
-                setSelectedRows(new Set());
-                fetchData();
-
-            } catch (error) {
-                console.error('Ошибка при удалении:', error);
             }
+
+            setSelectedRows(new Set());
+            fetchData();
+        } catch (error) {
+            console.error('Ошибка при удалении:', error);
+        } finally {
+            setIsDeleteConfirmOpen(false);
+            setItemsToDelete([]);
+        }
+    };
+
+
+    const handleDelete = () => {
+        if (selectedRows.size > 0) {
+            const selectedItems = Array.from(selectedRows).map(index => paginatedOrders[index].nomenclature_id);
+            confirmDelete(selectedItems);
         } else {
             console.log('Не выбраны элементы для удаления');
         }
     };
 
 
+    const handleBrandChange = (brand: string) => {
+        setSelectedCBrand(brand)
+        setSearchValue('')
+        setCurrentPage(1)
+    }
+
+
+
+    const handleSort = (column: string) => {
+        if (sortColumn === column) {
+            // Если столбец уже выбран, меняем направление
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            // Устанавливаем новый столбец с сортировкой по возрастанию
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    const sortedOrders = [...filteredOrders].sort((a, b) => {
+        if (!sortColumn) return 0; // Если сортировка не задана, возвращаем без изменений
+        let aValue = a[sortColumn];
+        let bValue = b[sortColumn];
+
+		// Если сортируем по дате и времени
+		if (sortColumn === 'nomenclature_add_date') {
+			const dateA = new Date(
+				`${a.nomenclature_add_date.split('.').reverse().join('-')}T${a.nomenclature_add_time}`
+			).getTime();
+			const dateB = new Date(
+				`${b.nomenclature_add_date.split('.').reverse().join('-')}T${b.nomenclature_add_time}`
+			).getTime();
+
+			aValue = dateA;
+			bValue = dateB;
+		}
+
+
+        if (aValue === bValue) return 0;
+
+        const compareResult = aValue > bValue ? 1 : -1;
+        return sortDirection === 'asc' ? compareResult : -compareResult;
+    });
+
+    const paginatedOrders = sortedOrders.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+
+    const handlePrevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
 
     return (
         <div>
@@ -236,7 +313,7 @@ export function NomenclatureView() {
                             />
                             <select
                                 value={selectedCBrand}
-                                onChange={(e) => setSelectedCBrand(e.target.value)}
+                                onChange={(e) => handleBrandChange(e.target.value)}
                                 className="px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white"
                             >
                                 <option value="">Все бренды</option>
@@ -253,8 +330,6 @@ export function NomenclatureView() {
                         </div>
                     </div>
 
-                    <div className="px-6 py-4">
-                        <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-700 mt-4">
                                 <thead className="bg-gray-700">
                                 <tr>
@@ -264,27 +339,57 @@ export function NomenclatureView() {
                                             onChange={handleSelectAll}
                                         />
                                     </th>
-                                    <th className="px-6 py-3 text-xs text-center ">Производитель</th>
-                                    <th className="px-6 py-3 text-xs text-center ">Номер
-                                        номенклатуры
+                                    <th
+                                        onClick={() => handleSort('nomenclature_brand')}
+                                        className="px-6 py-3 text-xs text-center cursor-pointer">
+                                        <Tooltip title="Сортировка по производителю" arrow>
+                                            <span>Производитель {sortColumn === 'nomenclature_brand' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                        </Tooltip>
                                     </th>
-                                    <th className="px-6 py-3 text-xs text-center">Производитель
-                                        Steels
+                                    <th
+                                        onClick={() => handleSort('nomenclature_number')}
+                                        className="px-6 py-3 text-xs text-center">
+                                        <Tooltip title="Сортировка по номеру номенклатуры" arrow>
+                                            <span>Номер номенклатуры {sortColumn === 'nomenclature_number' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                        </Tooltip>
                                     </th>
-                                    <th className="px-6 py-3 text-xs text-center ">Наименование</th>
-                                    <th className="px-6 py-3 text-xs text-center ">Ссылка
-                                        1
+                                    <th className="px-6 py-3 text-xs text-center"
+                                        onClick={() => handleSort('nomenclature_brand_steels')}>
+                                        <Tooltip title="Сортировка по производителю Steels" arrow>
+                                            <span>Производитель Steels {sortColumn === 'nomenclature_brand_steels' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                        </Tooltip>
                                     </th>
-                                    <th className="px-6 py-3 text-xs text-center ">Ссылка
-                                        2
+                                    <th className="px-6 py-3 text-xs text-center"
+                                        onClick={() => handleSort('nomenclature_name')}>
+                                        <Tooltip title="Сортировка по наименованию" arrow>
+                                            <span>Наименование {sortColumn === 'nomenclature_name' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                        </Tooltip>
                                     </th>
-                                    <th className="px-6 py-3 text-xs text-center">Единица
-                                        измерения
+                                    <th className="px-6 py-3 text-xs text-center"
+                                        onClick={() => handleSort('nomenclature_link1')}>
+                                        <Tooltip title="Сортировка по ссылке 1" arrow>
+                                            <span>Ссылка 1 {sortColumn === 'nomenclature_link1' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                        </Tooltip>
                                     </th>
-                                    <th className="px-6 py-3 text-xs text-center">Дата
-                                        регистрации
+                                    <th className="px-6 py-3 text-xs text-center"
+                                        onClick={() => handleSort('nomenclature_link2')}>
+                                        <Tooltip title="Сортировка по ссылке 2" arrow>
+                                            <span>Ссылка 2 {sortColumn === 'nomenclature_link2' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                        </Tooltip>
                                     </th>
-                                    <th className="px-6 py-3 text-xs text-center "></th>
+                                    <th className="px-6 py-3 text-xs text-center"
+                                        onClick={() => handleSort('nomenclature_unit')}>
+                                        <Tooltip title="Сортировка по единице измерения" arrow>
+                                            <span>Единица измерения {sortColumn === 'nomenclature_unit' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                        </Tooltip>
+                                    </th>
+                                    <th className="px-6 py-3 text-xs text-center"
+                                        onClick={() => handleSort('nomenclature_add_date')}>
+                                        <Tooltip title="Сортировка по дате регистрации" arrow>
+                                            <span>Дата и время регистрации {sortColumn === 'nomenclature_add_date' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                        </Tooltip>
+                                    </th>
+                                    <th className="px-6 py-3 text-xs text-center"></th>
                                 </tr>
                                 </thead>
                                 <tbody className="bg-gray-800 divide-y divide-gray-700">
@@ -298,14 +403,14 @@ export function NomenclatureView() {
                                             />
                                         </td>
                                         <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_brand}</td>
-                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_number}</td>
-                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_brand_steels}</td>
-                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_name}</td>
-                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_link1}</td>
-                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_link2}</td>
-                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_unit}</td>
-                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_add_date}</td>
-                                        <td className="px-6 py-4 text-center text-xs ">
+                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_number}</td>
+                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_brand_steels}</td>
+                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_name}</td>
+                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_link1}</td>
+                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_link2}</td>
+                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_unit}</td>
+                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_add_date}, {item.nomenclature_add_time}</td>
+                                        <td className="px-6 py-4 text-left text-xs ">
                                             {selectedRows.has(index) && (
                                                 <div className={"flex flex-wrap justify-center items-center"}>
 
@@ -329,8 +434,10 @@ export function NomenclatureView() {
                                 ))}
                                 </tbody>
                             </table>
-                        </div>
-                    </div>
+
+
+
+
                     <div className="flex justify-between items-center mt-4">
                         <button
                             onClick={handlePrevPage}
@@ -366,16 +473,15 @@ export function NomenclatureView() {
                                     type="text"
                                     value={editData?.nomenclature_brand || ''}
                                     onChange={(e) => setEditData({...editData, nomenclature_brand: e.target.value})}
-                                    placeholder="Производитель"
+                                    placeholder="Производитель (Обязательно)"
                                     className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
                                 />
                                 <input
                                     type="text"
                                     value={editData?.nomenclature_number || ''}
                                     onChange={(e) => setEditData({...editData, nomenclature_number: e.target.value})}
-                                    placeholder="Номер номенклатуры"
+                                    placeholder="Номер номенклатуры (Обязательно)"
                                     className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
-                                    readOnly={!editData?.id}
                                 />
                                 <input
                                     type="text"
@@ -388,7 +494,7 @@ export function NomenclatureView() {
                                     type="text"
                                     value={editData?.nomenclature_name || ''}
                                     onChange={(e) => setEditData({...editData, nomenclature_name: e.target.value})}
-                                    placeholder="Наименование"
+                                    placeholder="Наименование (Обязательно)"
                                     className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
                                 />
                                 <input
@@ -412,7 +518,6 @@ export function NomenclatureView() {
                                     placeholder="Единица измерения"
                                     className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
                                 />
-                                {/* Add more fields as needed */}
                             </div>
 
                             <div className="mt-6 flex justify-end space-x-4">
@@ -433,6 +538,34 @@ export function NomenclatureView() {
                     </div>
                 </Dialog>
             </Transition>
+
+
+            <Transition show={isDeleteConfirmOpen} as={React.Fragment}>
+                <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto backdrop-blur" onClose={setIsDeleteConfirmOpen}>
+                    <div className="flex items-center justify-center min-h-screen p-4">
+                        <span className="inline-block align-middle h-screen" aria-hidden="true">&#8203;</span>
+                        <div className="bg-gray-800 rounded-lg w-3/4 max-w-md mx-auto p-6">
+                            <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-500">
+                                Подтвердите удаление
+                            </Dialog.Title>
+                            <div className="mt-2">
+                                <p className="text-sm text-gray-500">
+                                    Вы уверены, что хотите удалить? Это действие необратимо.
+                                </p>
+                            </div>
+                            <div className="mt-4 flex space-x-4">
+                                <Button onClick={() => setIsDeleteConfirmOpen(false)} className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500">
+                                    Отмена
+                                </Button>
+                                <Button onClick={handleConfirmedDelete} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
+                                    Удалить
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition>
+
         </div>
     );
 }

@@ -18,10 +18,10 @@ importers:
         specifier: ^3.2.2
         version: 3.2.2(react@18.2.0)
       '@emotion/react':
-        specifier: ^11.11.4
+        specifier: ^11.13.3
         version: 11.13.3(@types/react@18.2.48)(react@18.2.0)
       '@emotion/styled':
-        specifier: ^11.11.5
+        specifier: ^11.13.0
         version: 11.13.0(@emotion/react@11.13.3(@types/react@18.2.48)(react@18.2.0))(@types/react@18.2.48)(react@18.2.0)
       '@headlessui/react':
         specifier: ^2.1.0
@@ -33,7 +33,7 @@ importers:
         specifier: ^5.0.0-alpha.170
         version: 5.0.0-alpha.173(@emotion/react@11.13.3(@types/react@18.2.48)(react@18.2.0))(@emotion/styled@11.13.0(@emotion/react@11.13.3(@types/react@18.2.48)(react@18.2.0))(@types/react@18.2.48)(react@18.2.0))(@mui/material@5.16.7(@emotion/react@11.13.3(@types/react@18.2.48)(react@18.2.0))(@emotion/styled@11.13.0(@emotion/react@11.13.3(@types/react@18.2.48)(react@18.2.0))(@types/react@18.2.48)(react@18.2.0))(@types/react@18.2.48)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@types/react@18.2.48)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@mui/material':
-        specifier: ^5.15.20
+        specifier: ^5.16.7
         version: 5.16.7(@emotion/react@11.13.3(@types/react@18.2.48)(react@18.2.0))(@emotion/styled@11.13.0(@emotion/react@11.13.3(@types/react@18.2.48)(react@18.2.0))(@types/react@18.2.48)(react@18.2.0))(@types/react@18.2.48)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@tanstack/react-query':
         specifier: ^5.18.0

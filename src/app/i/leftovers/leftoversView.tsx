@@ -3,9 +3,11 @@
 import axios from 'axios'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
-
+import Tooltip from '@mui/material/Tooltip';
 import Loader from '@/components/ui/Loader/loader'
 import { Button } from '@/components/ui/buttons/Button'
+import { FaFileExcel } from 'react-icons/fa'; // импорт пиктограммы Excel
+import * as XLSX from 'xlsx'; // импорт библиотеки для работы с Excel
 
 interface LeftOvers {
 	nomenclature_id: string
@@ -138,42 +140,42 @@ export function LeftoversView() {
 	const indexOfFirstItem = indexOfLastItem - itemsPerPage
 
 	const sortItems = (items: LeftOvers[]) => {
-		if (!sortColumn) return items
-		return [...items].sort((a, b) => {
-			let valueA: any = a[sortColumn]
-			let valueB: any = b[sortColumn]
-			if (
-				sortColumn === 'product_update_date' ||
-				sortColumn === 'product_update_time'
-			) {
-				const dateA = new Date(`${a.product_update_date} ${a.product_update_time}`)
-				const dateB = new Date(`${b.product_update_date} ${b.product_update_time}`)
-				valueA = dateA.getTime()
-				valueB = dateB.getTime()
-			}
-			return valueA < valueB
-				? sortOrder === 'asc'
-					? -1
-					: 1
-				: valueA > valueB
-					? sortOrder === 'asc'
-						? 1
-						: -1
-					: 0
-		})
-	}
+		if (!sortColumn) return items;
 
-	const sortedItems = sortItems(searchedItems)
-	const currentItems = sortedItems.slice(indexOfFirstItem, indexOfLastItem)
+		return [...items].sort((a, b) => {
+			let valueA: any = a[sortColumn];
+			let valueB: any = b[sortColumn];
+
+			// Если сортируем по дате и времени
+			if (sortColumn === 'product_update_date') {
+				const dateA = new Date(
+					`${a.product_update_date.split('.').reverse().join('-')}T${a.product_update_time}`
+				).getTime();
+				const dateB = new Date(
+					`${b.product_update_date.split('.').reverse().join('-')}T${b.product_update_time}`
+				).getTime();
+
+				valueA = dateA;
+				valueB = dateB;
+			}
+
+			if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1;
+			if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1;
+			return 0;
+		});
+	};
+
+	const sortedItems = sortItems(searchedItems);
+	const currentItems = sortedItems.slice(indexOfFirstItem, indexOfLastItem);
 
 	const handleSort = (column: keyof LeftOvers) => {
 		if (sortColumn === column) {
-			setSortOrder(prevOrder => (prevOrder === 'asc' ? 'desc' : 'asc'))
+			setSortOrder(prevOrder => (prevOrder === 'asc' ? 'desc' : 'asc'));
 		} else {
-			setSortColumn(column)
-			setSortOrder('asc')
+			setSortColumn(column);
+			setSortOrder('asc');
 		}
-	}
+	};
 
 	const handleBrandChange = (brand: string) => {
 		setSelectedBrand(brand)
@@ -193,6 +195,32 @@ export function LeftoversView() {
 			setCurrentPage(currentPage + 1)
 		}
 	}
+
+	const handleDownloadExcel = () => {
+		// Генерация данных для выгрузки
+		const dataToExport = sortedItems.map(item => ({
+			'Наименование товара': item.product_name,
+			'Артикул': item.product_article,
+			'Бренд': item.product_brand,
+			'Количество': item.product_amount,
+			'Цена': item.product_price,
+			'Дата и время обновления': `${item.product_update_date} ${item.product_update_time}`,
+		}));
+
+		// Создание и скачивание Excel файла
+		const ws = XLSX.utils.json_to_sheet(dataToExport); // Конвертация данных в лист
+		const wb = XLSX.utils.book_new(); // Создание книги
+		XLSX.utils.book_append_sheet(wb, ws, 'Остатки товаров'); // Добавление листа в книгу
+
+		// Скачивание файла
+		XLSX.writeFile(wb, 'leftovers.xlsx');
+	};
+	const handleLog = () => {
+		window.open('http://147.45.153.94/new_age/parse_post_files/show_parsing.php', '_blank')
+	};
+
+
+
 
 	return (
 		<div>
@@ -235,11 +263,19 @@ export function LeftoversView() {
 						))}
 					</select>
 
-					<Button
-						onClick={event => window.open('http://147.45.153.94/new_age/parse_post_files/show_parsing.php', '_blank')}
-					>
-						Лог
-					</Button>
+
+					<Tooltip title="Показать логирование парсинга почты" arrow>
+						<Button onClick={handleLog}>
+							Лог
+						</Button>
+					</Tooltip>
+
+					<Tooltip title="Выгрузить в Excel" arrow>
+						<Button onClick={handleDownloadExcel}>
+							<FaFileExcel className="text-[27px]" />
+						</Button>
+					</Tooltip>
+
 				</div>
 			</div>
 
@@ -251,69 +287,56 @@ export function LeftoversView() {
 					<tr>
 						<th
 							className='px-6 py-3 text-xs text-center cursor-pointer'
-							onClick={() => handleSort('product_name')}
-						>
-							Наименование товара
-							{sortColumn === 'product_name' && (
-								<span>{sortOrder === 'asc' ? ' ↑' : ' ↓'}</span>
-							)}
+							onClick={() => handleSort('product_name')}>
+							<Tooltip title="Сортировка по наименование товара" arrow>
+								<span>Наименование товара {sortColumn === 'product_name' && (sortOrder === 'asc' ? ' ↑' : ' ↓')}</span>
+							</Tooltip>
 						</th>
 						<th
 							className='px-6 py-3 text-xs text-center cursor-pointer'
-							onClick={() => handleSort('product_article')}
-						>
-							Артикул
-							{sortColumn === 'product_article' && (
-								<span>{sortOrder === 'asc' ? ' ↑' : ' ↓'}</span>
-							)}
+							onClick={() => handleSort('product_article')}>
+							<Tooltip title="Сортировка по артиклу" arrow>
+								<span>Артикул {sortColumn === 'product_article' && (sortOrder === 'asc' ? ' ↑' : ' ↓')}</span>
+							</Tooltip>
 						</th>
 						<th
 							className='px-6 py-3 text-xs text-center cursor-pointer'
-							onClick={() => handleSort('product_brand')}
-						>
-							Бренд
-							{sortColumn === 'product_brand' && (
-								<span>{sortOrder === 'asc' ? ' ↑' : ' ↓'}</span>
-							)}
+							onClick={() => handleSort('product_brand')}>
+							<Tooltip title="Сортировка по бренду" arrow>
+								<span>Бренд {sortColumn === 'product_brand' && (sortOrder === 'asc' ? ' ↑' : ' ↓')}</span>
+							</Tooltip>
 						</th>
 						<th
 							className='px-6 py-3 text-xs text-center cursor-pointer'
-							onClick={() => handleSort('product_amount')}
-						>
-							Количество
-							{sortColumn === 'product_amount' && (
-								<span>{sortOrder === 'asc' ? ' ↑' : ' ↓'}</span>
-							)}
+							onClick={() => handleSort('product_amount')}>
+							<Tooltip title="Сортировка по количеству" arrow>
+								<span>Количество {sortColumn === 'product_amount' && (sortOrder === 'asc' ? ' ↑' : ' ↓')}</span>
+							</Tooltip>
 						</th>
 						<th
 							className='px-6 py-3 text-xs text-center cursor-pointer'
-							onClick={() => handleSort('product_price')}
-						>
-							Цена
-							{sortColumn === 'product_price' && (
-								<span>{sortOrder === 'asc' ? ' ↑' : ' ↓'}</span>
-							)}
+							onClick={() => handleSort('product_price')}>
+							<Tooltip title="Сортировка по цене" arrow>
+								<span>Цена {sortColumn === 'product_price' && (sortOrder === 'asc' ? ' ↑' : ' ↓')}</span>
+							</Tooltip>
 						</th>
-						<th
-							className='px-6 py-3 text-xs text-center cursor-pointer'
-							onClick={() => handleSort('product_update_date')}
-						>
-							Дата и время добавления
-							{sortColumn === 'product_update_date' && (
-								<span>{sortOrder === 'asc' ? ' ↑' : ' ↓'}</span>
-							)}
+						<th className='px-6 py-3 text-xs text-center cursor-pointer'
+							onClick={() => handleSort('product_update_date')}>
+							<Tooltip title="Сортировка по дате и времени" arrow>
+                 				 <span>Дата и время обновления {sortColumn === 'product_update_date' && (sortOrder === 'asc' ? '↑' : '↓')}</span>
+							</Tooltip>
 						</th>
 					</tr>
 					</thead>
 					<tbody className={'bg-gray-800 divide-y divide-gray-700'}>
 					{currentItems.map(item => (
 						<tr key={item.nomenclature_id}>
-							<td className='px-6 py-4 text-xs text-center'>{item.product_name}</td>
-							<td className='px-6 py-4 text-xs text-center'>{item.product_article}</td>
-							<td className='px-6 py-4 text-xs text-center'>{item.product_brand}</td>
-							<td className='px-6 py-4 text-xs text-center'>{item.product_amount}</td>
-							<td className='px-6 py-4 text-xs text-center'>{item.product_price}</td>
-							<td className='px-6 py-4 text-xs text-center'>{item.product_update_date}, {item.product_update_time}</td>
+							<td className='px-6 py-4 text-xs text-left'>{item.product_name}</td>
+							<td className='px-6 py-4 text-xs text-left'>{item.product_article}</td>
+							<td className='px-6 py-4 text-xs text-left'>{item.product_brand}</td>
+							<td className='px-6 py-4 text-xs text-left'>{item.product_amount}</td>
+							<td className='px-6 py-4 text-xs text-left'>{item.product_price}</td>
+							<td className='px-6 py-4 text-xs text-left'>{item.product_update_date}, {item.product_update_time}</td>
 						</tr>
 					))}
 					</tbody>

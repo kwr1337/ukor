@@ -171,27 +171,43 @@ export function CounterpartyView() {
 
 
 
+
+
+
 	const handleSubmit = async (e: any) => {
 		e.preventDefault();
 
 		if (!isUniqueAndComplete()) return;
 
 		try {
+			// Модификация email данных для добавления поля 'parsing'
+			const updatedEmails = formData.emails.map(email => ({
+				...email,
+				parsing: email.type === 'На парсинг' ? true : false
+			}));
+
+			// Преобразуем warehouseAddress только если тип контрагента 'Склад'
+			const contragentWarehouseNumber = formData.type === 'Склад' && warehouseAddress ? warehouseAddress : null;
+
 			const response = await axios.post('/new_age/API/contragents/add_contragent.php', {
 				contragent_name: formData.name,
 				contragent_type: formData.type,
 				contragent_inn: formData.inn,
 				contragent_phones: formData.phones,
-				contragent_emails: formData.emails,
-				warehouse_address: formData.type === 'Склад' ? warehouseAddress : null,
+				contragent_emails: updatedEmails,
+				contragent_warehouse_number: contragentWarehouseNumber, // Убедитесь, что номер склада правильно передается
 			});
-			console.log('Response:', response.data);
+
+			console.log('Успех:', response.data);
 			alert('Контрагент успешно добавлен');
 			handleBack();
+
 		} catch (error) {
 			console.error('Ошибка при добавлении контрагента:', error);
 		}
 	}
+
+
 
 	return (
 		<div>
