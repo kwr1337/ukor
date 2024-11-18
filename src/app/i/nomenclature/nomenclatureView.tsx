@@ -291,7 +291,7 @@ export function NomenclatureView() {
         <div>
             <div>
                 <div className="flex items-center space-x-4">
-                    <h1 className="text-3xl font-medium">Номенклатура</h1>
+                    <h1 className="text-3xl font-medium">Номенклатура ({filteredOrders.length}) </h1>
                     {/*<div className="flex mb-4 space-x-2">*/}
                     {/*    <Button className="bg-primary text-white px-4 py-2 rounded">Cкачать пустой шаблон</Button>*/}
                     {/*    <Button className="bg-gray-200 px-4 py-2 rounded">Скачать шаблон по выбранным</Button>*/}
@@ -340,25 +340,26 @@ export function NomenclatureView() {
                                         />
                                     </th>
                                     <th
-                                        onClick={() => handleSort('nomenclature_brand')}
-                                        className="px-6 py-3 text-xs text-center cursor-pointer">
-                                        <Tooltip title="Сортировка по производителю" arrow>
-                                            <span>Производитель {sortColumn === 'nomenclature_brand' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
-                                        </Tooltip>
-                                    </th>
-                                    <th
                                         onClick={() => handleSort('nomenclature_number')}
                                         className="px-6 py-3 text-xs text-center">
                                         <Tooltip title="Сортировка по номеру номенклатуры" arrow>
                                             <span>Номер номенклатуры {sortColumn === 'nomenclature_number' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
                                         </Tooltip>
                                     </th>
-                                    <th className="px-6 py-3 text-xs text-center"
-                                        onClick={() => handleSort('nomenclature_brand_steels')}>
-                                        <Tooltip title="Сортировка по производителю Steels" arrow>
-                                            <span>Производитель Steels {sortColumn === 'nomenclature_brand_steels' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                    <th
+                                        onClick={() => handleSort('nomenclature_brand')}
+                                        className="px-6 py-3 text-xs text-center cursor-pointer">
+                                        <Tooltip title="Сортировка по производителю" arrow>
+                                            <span>Производитель {sortColumn === 'nomenclature_brand' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
                                         </Tooltip>
                                     </th>
+                                    {/*241118 По просьбе Марата закоментировал*/}
+                                    {/*<th className="px-6 py-3 text-xs text-center"*/}
+                                    {/*    onClick={() => handleSort('nomenclature_brand_steels')}>*/}
+                                    {/*    <Tooltip title="Сортировка по производителю Steels" arrow>*/}
+                                    {/*        <span>Производитель Steels {sortColumn === 'nomenclature_brand_steels' && (sortDirection === 'asc' ? '↑' : '↓')}</span>*/}
+                                    {/*    </Tooltip>*/}
+                                    {/*</th>*/}
                                     <th className="px-6 py-3 text-xs text-center"
                                         onClick={() => handleSort('nomenclature_name')}>
                                         <Tooltip title="Сортировка по наименованию" arrow>
@@ -402,15 +403,16 @@ export function NomenclatureView() {
                                                 onChange={() => handleCheckboxChange(index)}
                                             />
                                         </td>
-                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_brand}</td>
                                         <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_number}</td>
-                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_brand_steels}</td>
-                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_name}</td>
-                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_link1}</td>
-                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_link2}</td>
-                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_unit}</td>
-                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_add_date}, {item.nomenclature_add_time}</td>
-                                        <td className="px-6 py-4 text-left text-xs ">
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_brand}</td>
+                                        {/*241118 По просьбе Марата закоментировал*/}
+                                        {/*<td className="px-6 py-4 text-left text-xs ">{item.nomenclature_brand_steels}</td>*/}
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_name}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_link1}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_link2}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_unit}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_add_date}, {item.nomenclature_add_time}</td>
+                                        <td className="px-6 py-4 text-center text-xs ">
                                             {selectedRows.has(index) && (
                                                 <div className={"flex flex-wrap justify-center items-center"}>
 

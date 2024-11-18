@@ -425,7 +425,7 @@ export function CounterPartiesView() {
 										onChange={() => handleCheckboxChange(contragent.id)}
 									/>
 								</td>
-								<td className='px-6 py-4 text-xs text-center'>{contragent.type}</td>
+								<td className='px-6 py-4 text-xs text-left'>{contragent.type}</td>
 								<td className='px-6 py-4 text-xs text-center'>{contragent.name}</td>
 								<td className='px-6 py-4 text-xs text-center'>{contragent.warehouse_number}</td>
 								<td className='px-6 py-4 text-xs text-center'>{contragent.INN}</td>

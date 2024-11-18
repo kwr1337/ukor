@@ -23,11 +23,13 @@ interface LeftOvers {
 	product_add_time: string
 	product_update_date: string
 	product_update_time: string
+	warehouse_number?: string;
 }
 
 interface Contragent {
-	id: number
+	id: string
 	name: string
+	warehouseNumber: string;
 }
 
 export function LeftoversView() {
@@ -48,27 +50,32 @@ export function LeftoversView() {
 
 	const router = useRouter()
 
+	//Выгрузка сладов с бека
 	const fetchLeftovers = async (contragentId?: number) => {
-		setLoading(true)
+		setLoading(true);
 		try {
 			const url = contragentId
 				? `/new_age/API/warehouses/get_warehouses.php?filter[contragent_id]=${contragentId}`
-				: '/new_age/products.php'
-			const response = await axios.get(url)
+				: '/new_age/API/warehouses/get_warehouses.php';
+
+			const response = await axios.get(url);
 
 			const nomenclature = contragentId
 				? response.data[0]?.nomenclature || []
-				: response.data
+				: response.data.flatMap((warehouse: any) => warehouse.nomenclature || []);
 
-			const flattenedNomenclature = nomenclature.flat()
+			const enrichedNomenclature = nomenclature.map((item: any) => ({
+				...item,
+				warehouse_number: getWarehouseNumber(item.product_contragent_id), // Добавить номер склада
+			}));
 
-			setLeftOversItems(flattenedNomenclature)
+			setLeftOversItems(enrichedNomenclature);
 		} catch (error) {
-			console.error('Ошибка при получении данных остатков:', error)
+			console.error('Ошибка при получении данных остатков:', error);
 		} finally {
-			setLoading(false)
+			setLoading(false);
 		}
-	}
+	};
 
 	useEffect(() => {
 		const fetchBrands = async () => {
@@ -85,20 +92,21 @@ export function LeftoversView() {
 
 		const fetchContragents = async () => {
 			try {
-				const response = await axios.get('/new_age/API/contragents/get_contragents.php')
+				const response = await axios.get('/new_age/API/contragents/get_contragents.php');
 				const contragentsData = response.data.filter(
 					(contragent: { contragent_type: string }) => contragent.contragent_type === 'Склад'
-				)
+				);
 				setContragents(
 					contragentsData.map((contragent: any) => ({
 						id: contragent.contragent_id,
 						name: contragent.contragent_name,
+						warehouseNumber: contragent.contragent_warehouse_number, // Предположим, что это поле есть
 					}))
-				)
+				);
 			} catch (error) {
-				console.error('Ошибка при получении данных контрагенентов:', error)
+				console.error('Ошибка при получении данных контрагентов:', error);
 			}
-		}
+		};
 
 		fetchLeftovers()
 		fetchBrands()
@@ -111,6 +119,13 @@ export function LeftoversView() {
 		fetchLeftovers(contragentId)
 		setCurrentPage(1)
 	}
+
+	const getWarehouseNumber = (contragentId: string) => {
+		const contragent = contragents.find(c => c.id === contragentId);
+		return contragent ? contragent.warehouseNumber : 'Неизвестно';
+	};
+
+
 
 	const filterItems = (items: LeftOvers[]) =>
 		!statusFilter ? items : items.filter(item => item.product_article === statusFilter)
@@ -146,36 +161,62 @@ export function LeftoversView() {
 			let valueA: any = a[sortColumn];
 			let valueB: any = b[sortColumn];
 
-			// Если сортируем по дате и времени
-			if (sortColumn === 'product_update_date') {
-				const dateA = new Date(
-					`${a.product_update_date.split('.').reverse().join('-')}T${a.product_update_time}`
-				).getTime();
-				const dateB = new Date(
-					`${b.product_update_date.split('.').reverse().join('-')}T${b.product_update_time}`
-				).getTime();
-
-				valueA = dateA;
-				valueB = dateB;
+			// Сортировка по номеру склада
+			if (sortColumn === 'warehouse_number') {
+				const warehouseA = getWarehouseNumber(a.product_contragent_id) || '';
+				const warehouseB = getWarehouseNumber(b.product_contragent_id) || '';
+				return sortOrder === 'asc'
+					? warehouseA.localeCompare(warehouseB)
+					: warehouseB.localeCompare(warehouseA);
 			}
 
-			if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1;
-			if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1;
+			// Сортировка по дате и времени обновления
+			if (sortColumn === 'product_update_date') {
+				const dateA = new Date(`${a.product_update_date.split('.').reverse().join('-')}T${a.product_update_time}`);
+				const dateB = new Date(`${b.product_update_date.split('.').reverse().join('-')}T${b.product_update_time}`);
+				return sortOrder === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
+			}
+
+			// Если значения числовые, сортируем как числа
+			if (!isNaN(Number(valueA)) && !isNaN(Number(valueB))) {
+				return sortOrder === 'asc' ? Number(valueA) - Number(valueB) : Number(valueB) - Number(valueA);
+			}
+
+			// Если значения строки, сортируем как строки
+			if (typeof valueA === 'string' && typeof valueB === 'string') {
+				return sortOrder === 'asc'
+					? valueA.localeCompare(valueB)
+					: valueB.localeCompare(valueA);
+			}
+
+			// Дополнительный критерий сортировки для одинаковых значений
+			if (valueA === valueB) {
+				return a.nomenclature_id.localeCompare(b.nomenclature_id); // Добавление ID для уникальности
+			}
+
+
+			// Обработка на случай некорректных данных
 			return 0;
 		});
 	};
 
+
+
+
 	const sortedItems = sortItems(searchedItems);
 	const currentItems = sortedItems.slice(indexOfFirstItem, indexOfLastItem);
 
-	const handleSort = (column: keyof LeftOvers) => {
+	const handleSort = (column: keyof LeftOvers | 'warehouse_number') => {
+		// Если сортируем по тому же столбцу, меняем порядок сортировки
 		if (sortColumn === column) {
 			setSortOrder(prevOrder => (prevOrder === 'asc' ? 'desc' : 'asc'));
 		} else {
+			// Если сортируем по другому столбцу, устанавливаем его как активный и по умолчанию сортируем по возрастанию
 			setSortColumn(column);
 			setSortOrder('asc');
 		}
 	};
+
 
 	const handleBrandChange = (brand: string) => {
 		setSelectedBrand(brand)
@@ -197,23 +238,33 @@ export function LeftoversView() {
 	}
 
 	const handleDownloadExcel = () => {
-		// Генерация данных для выгрузки
+
 		const dataToExport = sortedItems.map(item => ({
 			'Наименование товара': item.product_name,
 			'Артикул': item.product_article,
 			'Бренд': item.product_brand,
 			'Количество': item.product_amount,
 			'Цена': item.product_price,
+			'Склад': item.warehouse_number, // Изменить
 			'Дата и время обновления': `${item.product_update_date} ${item.product_update_time}`,
 		}));
 
 		// Создание и скачивание Excel файла
-		const ws = XLSX.utils.json_to_sheet(dataToExport); // Конвертация данных в лист
-		const wb = XLSX.utils.book_new(); // Создание книги
-		XLSX.utils.book_append_sheet(wb, ws, 'Остатки товаров'); // Добавление листа в книгу
+		const ws = XLSX.utils.json_to_sheet(dataToExport);
+		const wb = XLSX.utils.book_new();
+		XLSX.utils.book_append_sheet(wb, ws, 'Остатки товаров');
 
+		const now = new Date();
+
+		const day = String(now.getDate()).padStart(2, '0');
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const year = now.getFullYear(); // Год
+		const hours = String(now.getHours()).padStart(2, '0');
+		const minutes = String(now.getMinutes()).padStart(2, '0');
+
+		const formattedDateTime = `${year}${month}${day}_${hours}${minutes}`;
 		// Скачивание файла
-		XLSX.writeFile(wb, 'leftovers.xlsx');
+		XLSX.writeFile(wb, `Выгрузка_остатков_${formattedDateTime}.xlsx`);
 	};
 	const handleLog = () => {
 		window.open('http://147.45.153.94/new_age/parse_post_files/show_parsing.php', '_blank')
@@ -226,7 +277,7 @@ export function LeftoversView() {
 		<div>
 			<div>
 				<div className='flex'>
-					<h1 className='text-3xl font-medium'>Остатки товаров ({totalItems})</h1>
+					<h1 className='text-3xl font-medium'>Cклады ({totalItems})</h1>
 				</div>
 				<div className='my-3 h-0.5 bg-border w-full' />
 			</div>
@@ -321,22 +372,29 @@ export function LeftoversView() {
 							</Tooltip>
 						</th>
 						<th className='px-6 py-3 text-xs text-center cursor-pointer'
+							onClick={() => handleSort('warehouse_number')}>
+							<Tooltip title="Сортировка по номеру склада" arrow>
+								<span>Номер склада {sortColumn === 'warehouse_number' && (sortOrder === 'asc' ? '↑' : '↓')}</span>
+							</Tooltip>
+						</th>
+						<th className='px-6 py-3 text-xs text-center cursor-pointer'
 							onClick={() => handleSort('product_update_date')}>
 							<Tooltip title="Сортировка по дате и времени" arrow>
-                 				 <span>Дата и время обновления {sortColumn === 'product_update_date' && (sortOrder === 'asc' ? '↑' : '↓')}</span>
+								<span>Дата и время обновления {sortColumn === 'product_update_date' && (sortOrder === 'asc' ? '↑' : '↓')}</span>
 							</Tooltip>
 						</th>
 					</tr>
 					</thead>
 					<tbody className={'bg-gray-800 divide-y divide-gray-700'}>
 					{currentItems.map(item => (
-						<tr key={item.nomenclature_id}>
+						<tr key={`${item.nomenclature_id}-${item.product_article}-${item.product_contragent_id}`}>
 							<td className='px-6 py-4 text-xs text-left'>{item.product_name}</td>
-							<td className='px-6 py-4 text-xs text-left'>{item.product_article}</td>
-							<td className='px-6 py-4 text-xs text-left'>{item.product_brand}</td>
-							<td className='px-6 py-4 text-xs text-left'>{item.product_amount}</td>
-							<td className='px-6 py-4 text-xs text-left'>{item.product_price}</td>
-							<td className='px-6 py-4 text-xs text-left'>{item.product_update_date}, {item.product_update_time}</td>
+							<td className='px-6 py-4 text-xs text-center'>{item.product_article}</td>
+							<td className='px-6 py-4 text-xs text-center'>{item.product_brand}</td>
+							<td className='px-6 py-4 text-xs text-center'>{item.product_amount}</td>
+							<td className='px-6 py-4 text-xs text-center'>{item.product_price}</td>
+							<td className='px-6 py-4 text-xs text-center'>{getWarehouseNumber(item.product_contragent_id)}</td>
+							<td className='px-6 py-4 text-xs text-center'>{item.product_update_date}, {item.product_update_time}</td>
 						</tr>
 					))}
 					</tbody>

@@ -23,15 +23,20 @@ export const MENU: IMenuItem[] = [
 	// 	icon: LayoutDashboard
 	// },
 	{
+		link: DASHBOARD_PAGES.LEFTOVERS,
+		name: 'Склады',
+		icon: Settings
+	},
+	{
 		link: DASHBOARD_PAGES.ORDER_FEED,
 		name: 'Заказы',
 		icon: ClipboardList
 	},
-	{
-		link: DASHBOARD_PAGES.SUPPLIES,
-		name: 'Поставки',
-		icon: Settings
-	},
+	// {
+	// 	link: DASHBOARD_PAGES.SUPPLIES,
+	// 	name: 'Поставки',
+	// 	icon: Settings
+	// },
 	// {
 	// 	link: DASHBOARD_PAGES.REVERS_IMPLEMENTATION,
 	// 	name: 'Обратная реализация',
@@ -57,24 +62,20 @@ export const MENU: IMenuItem[] = [
 	// 	name: 'Отчеты',
 	// 	icon: BookCheck
 	// },
-	{
-		link: DASHBOARD_PAGES.BLACK_LIST,
-		name: 'Черный список',
-		icon: ShieldAlert
-	},
+	// {
+	// 	link: DASHBOARD_PAGES.BLACK_LIST,
+	// 	name: 'Черный список',
+	// 	icon: ShieldAlert
+	// },
 	{
 		link: DASHBOARD_PAGES.COUNTERPARTIES,
 		name: 'Контрагенты',
 		icon: Users
 	},
-	{
-		link: DASHBOARD_PAGES.EMPLOYEES,
-		name: 'Сотрудники',
-		icon: Users
-	},
-	{
-		link: DASHBOARD_PAGES.LEFTOVERS,
-		name: 'Склады',
-		icon: Settings
-	}
+	// {
+	// 	link: DASHBOARD_PAGES.EMPLOYEES,
+	// 	name: 'Сотрудники',
+	// 	icon: Users
+	// },
+
 ]
