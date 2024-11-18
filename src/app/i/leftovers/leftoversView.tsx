@@ -245,7 +245,7 @@ export function LeftoversView() {
 			'Бренд': item.product_brand,
 			'Количество': item.product_amount,
 			'Цена': item.product_price,
-			'Склад': item.warehouse_number, // Изменить
+			'Склад': getWarehouseNumber(item.product_contragent_id),
 			'Дата и время обновления': `${item.product_update_date} ${item.product_update_time}`,
 		}));
 
