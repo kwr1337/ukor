@@ -407,7 +407,7 @@ export function NomenclatureView() {
                                         <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_brand}</td>
                                         {/*241118 По просьбе Марата закоментировал*/}
                                         {/*<td className="px-6 py-4 text-left text-xs ">{item.nomenclature_brand_steels}</td>*/}
-                                        <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_name}</td>
+                                        <td className="px-6 py-4 text-left text-xs ">{item.nomenclature_name}</td>
                                         <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_link1}</td>
                                         <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_link2}</td>
                                         <td className="px-6 py-4 text-center text-xs ">{item.nomenclature_unit}</td>
@@ -485,13 +485,13 @@ export function NomenclatureView() {
                                     placeholder="Номер номенклатуры (Обязательно)"
                                     className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
                                 />
-                                <input
-                                    type="text"
-                                    value={editData?.nomenclature_brand_steels || ''}
-                                    onChange={(e) => setEditData({...editData, nomenclature_brand_steels: e.target.value})}
-                                    placeholder="Производитель Steels"
-                                    className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
-                                />
+                                {/*<input*/}
+                                {/*    type="text"*/}
+                                {/*    value={editData?.nomenclature_brand_steels || ''}*/}
+                                {/*    onChange={(e) => setEditData({...editData, nomenclature_brand_steels: e.target.value})}*/}
+                                {/*    placeholder="Производитель Steels"*/}
+                                {/*    className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"*/}
+                                {/*/>*/}
                                 <input
                                     type="text"
                                     value={editData?.nomenclature_name || ''}
@@ -543,19 +543,19 @@ export function NomenclatureView() {
 
 
             <Transition show={isDeleteConfirmOpen} as={React.Fragment}>
-                <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto backdrop-blur" onClose={setIsDeleteConfirmOpen}>
-                    <div className="flex items-center justify-center min-h-screen p-4">
+                <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto backdrop-blur " onClose={setIsDeleteConfirmOpen}>
+                    <div className="flex items-center justify-center min-h-screen p-4 ">
                         <span className="inline-block align-middle h-screen" aria-hidden="true">&#8203;</span>
-                        <div className="bg-gray-800 rounded-lg w-3/4 max-w-md mx-auto p-6">
-                            <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-500">
+                        <div className="bg-gray-800 rounded-lg w-3/4 max-w-md mx-auto p-6 border-white border">
+                            <Dialog.Title as="h3" className="text-lg text-center leading-6 font-medium text-gray-500">
                                 Подтвердите удаление
                             </Dialog.Title>
                             <div className="mt-2">
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-center text-gray-500">
                                     Вы уверены, что хотите удалить? Это действие необратимо.
                                 </p>
                             </div>
-                            <div className="mt-4 flex space-x-4">
+                            <div className="mt-4 flex justify-between">
                                 <Button onClick={() => setIsDeleteConfirmOpen(false)} className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500">
                                     Отмена
                                 </Button>

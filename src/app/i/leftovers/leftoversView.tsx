@@ -244,7 +244,7 @@ export function LeftoversView() {
 			'Артикул': item.product_article,
 			'Бренд': item.product_brand,
 			'Количество': item.product_amount,
-			'Цена': item.product_price,
+			'Цена': Number(item.product_price),
 			'Склад': getWarehouseNumber(item.product_contragent_id),
 			'Дата и время обновления': `${item.product_update_date} ${item.product_update_time}`,
 		}));
@@ -266,6 +266,7 @@ export function LeftoversView() {
 		// Скачивание файла
 		XLSX.writeFile(wb, `Выгрузка_остатков_${formattedDateTime}.xlsx`);
 	};
+
 	const handleLog = () => {
 		window.open('http://147.45.153.94/new_age/parse_post_files/show_parsing.php', '_blank')
 	};
@@ -294,7 +295,7 @@ export function LeftoversView() {
 						onChange={e => handleContragentChange(Number(e.target.value))}
 						className='px-4 py-2.5 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white'
 					>
-						<option value=''>Выберите контрагента</option>
+						<option value=''>Выберите склад</option>
 						{contragents.map(contragent => (
 							<option key={contragent.id} value={contragent.id}>
 								{contragent.name}

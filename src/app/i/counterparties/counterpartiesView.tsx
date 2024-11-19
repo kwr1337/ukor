@@ -637,16 +637,16 @@ export function CounterPartiesView() {
 					<Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto backdrop-blur" onClose={setIsDeleteConfirmOpen}>
 						<div className="flex items-center justify-center min-h-screen p-4">
 							<span className="inline-block align-middle h-screen" aria-hidden="true">&#8203;</span>
-							<div className="bg-gray-800 rounded-lg w-3/4 max-w-md mx-auto p-6">
-								<Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-500">
+							<div className="bg-gray-800 rounded-lg w-3/4 max-w-md mx-auto p-6 border-white border">
+								<Dialog.Title as="h3" className="text-lg  text-center leading-6 font-medium text-gray-500">
 									Подтвердите удаление
 								</Dialog.Title>
 								<div className="mt-2">
-									<p className="text-sm text-gray-500">
+									<p className="text-sm  text-center text-gray-500">
 										Вы уверены, что хотите удалить контрагента {counterpartyToDelete?.name}? Это действие необратимо.
 									</p>
 								</div>
-								<div className="mt-4 flex space-x-4">
+								<div className="mt-4 flex justify-between">
 									<Button onClick={handleDeleteCancel} className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500">
 										Отмена
 									</Button>
