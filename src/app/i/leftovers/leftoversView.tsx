@@ -243,7 +243,7 @@ export function LeftoversView() {
 			'Наименование товара': item.product_name,
 			'Артикул': item.product_article,
 			'Бренд': item.product_brand,
-			'Количество': item.product_amount,
+			'Количество': item.product_amount,	
 			'Цена': Number(item.product_price),
 			'Склад': getWarehouseNumber(item.product_contragent_id),
 			'Дата и время обновления': `${item.product_update_date} ${item.product_update_time}`,
@@ -275,7 +275,7 @@ export function LeftoversView() {
 
 
 	return (
-		<div>
+		<div className="flex flex-col flex-1 w-full">
 			<div>
 				<div className='flex'>
 					<h1 className='text-3xl font-medium'>Cклады ({totalItems})</h1>
