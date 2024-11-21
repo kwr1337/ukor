@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: PropsWithChildren<unknown>
 		>
 			<Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 			<main
-				className={`content-wrapper transition-all duration-300 overflow-y-scroll max-h-[100vh] ${
+				className={`content-wrapper transition-all duration-300 overflow-y-auto max-h-[100vh] ${
 					isSidebarOpen ? 'p-6' : 'p-4'
 				}`}
 			>
