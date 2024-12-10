@@ -16,6 +16,7 @@ type Counterparty = {
 	INN: string
 	email: { id: number; value: string; type: string }[]
 	phone: { id: number; value: string; type: string }[]
+	contragent_deleted: boolean
 }
 
 export function CounterPartiesView() {
@@ -33,7 +34,7 @@ export function CounterPartiesView() {
 	const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 	const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 	const [counterpartyToDelete, setCounterpartyToDelete] = useState<Counterparty | null>(null);
-
+	const [deleteFilter, setDeleteFilter] = useState<'all' | 'deleted' | 'active'>('all')
 
 	useEffect(() => {
 		fetch('/new_age/API/contragents/get_contragents.php')
@@ -54,7 +55,8 @@ export function CounterPartiesView() {
 						id: phone.id || 0,
 						value: phone.value,
 						type: phone.type
-					}))
+					})),
+					contragent_deleted: item.contragent_deleted === '1'
 				}))
 				setData(transformedData)
 				console.log(transformedData)
@@ -151,6 +153,7 @@ export function CounterPartiesView() {
 					contragent_type: editCounterparty.type,
 					contragent_inn: editCounterparty.INN,
 					contragent_phones: updatedPhones,
+					// contragent_emails: updatedEmails,
 				}),
 			})
 				.then((response) => {
@@ -172,6 +175,7 @@ export function CounterPartiesView() {
 										type: editCounterparty.type,
 										INN: editCounterparty.INN,
 										phone: updatedPhones,
+										// email: updatedEmails
 									}
 									: contragent
 							)
@@ -183,7 +187,6 @@ export function CounterPartiesView() {
 				})
 				.catch((error) => {
 					console.error('Ошибка при обновлении контрагента:', error.message);
-					// Дополнительно выводим информацию о запросе и ответе
 					console.error('Полная ошибка:', error);
 				});
 
@@ -199,11 +202,23 @@ export function CounterPartiesView() {
 		display: 'flex'
 	}
 
-	const filteredOrders = data.filter(
-		order =>
-			order.name.includes(searchValue) &&
-			(!statusFilter || order.type === statusFilter)
-	)
+
+	const filteredData = data.filter(item => {
+		// Фильтр по строке поиска
+		const matchesSearch = !searchValue || item.name.toLowerCase().includes(searchValue.toLowerCase())
+
+		// Фильтр по статусу контрагента (удалён/активен)
+		const matchesDeleteFilter =
+			deleteFilter === 'deleted' ? item.contragent_deleted :
+				deleteFilter === 'active' ? !item.contragent_deleted :
+					true
+
+		// Фильтр по типу (если применимо)
+		const matchesStatusFilter = !statusFilter || item.type.toLowerCase() === statusFilter.toLowerCase()
+
+		// Возвращаем итоговое значение, удовлетворяющее всем условиям
+		return matchesSearch && matchesDeleteFilter && matchesStatusFilter
+	})
 
 	const handleChangePhone = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
 		if (editCounterparty) {
@@ -280,7 +295,7 @@ export function CounterPartiesView() {
 	}
 
 	const sortedData = React.useMemo(() => {
-		let sortableData = [...filteredOrders];
+		let sortableData = [...filteredData];
 		if (sortConfig !== null) {
 			sortableData.sort((a, b) => {
 				// @ts-ignore
@@ -295,7 +310,7 @@ export function CounterPartiesView() {
 			});
 		}
 		return sortableData;
-	}, [filteredOrders, sortConfig]);
+	}, [sortConfig,filteredData]);
 
 	const handleSort = (key: string) => {
 		let direction: 'asc' | 'desc' = 'asc';
@@ -323,7 +338,7 @@ export function CounterPartiesView() {
 						Все
 					</Button>
 					<Button
-						onClick={() => setStatusFilter('Склад')}
+						onClick={() => setStatusFilter('склад'.toLowerCase())}
 						className='bg-primary text-white px-4 py-2 rounded'
 					>
 						Склад
@@ -354,6 +369,15 @@ export function CounterPartiesView() {
 								className='px-4 py-2 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 flex-1 bg-gray-700 text-white'
 								placeholder='Введите значение для поиска'
 							/>
+							<select
+								value={deleteFilter}
+								onChange={(e) => setDeleteFilter(e.target.value as 'all' | 'deleted' | 'active')}
+								className="px-4 py-2 border border-gray-600 rounded-md bg-gray-700 text-white focus:outline-none"
+							>
+								<option value="all">Все</option>
+								<option value="active">Активные</option>
+								<option value="deleted">Удалённые</option>
+							</select>
 							<Button
 								onClick={handleCreate}
 								className='px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300'
@@ -419,11 +443,15 @@ export function CounterPartiesView() {
 						{sortedData.map(contragent => (
 							<tr key={contragent.id}>
 								<td className='px-4 py-4 text-center'>
-									<input
-										type='checkbox'
-										checked={selectedCounterparties.includes(contragent.id)}
-										onChange={() => handleCheckboxChange(contragent.id)}
-									/>
+									{!contragent.contragent_deleted ? (
+										<input
+											type='checkbox'
+											checked={selectedCounterparties.includes(contragent.id)}
+											onChange={() => handleCheckboxChange(contragent.id)}
+										/>
+									) : (
+										<span className='text-gray-400'>Удален</span>
+									)}
 								</td>
 								<td className='px-6 py-4 text-xs text-left'>{contragent.type}</td>
 								<td className='px-6 py-4 text-xs text-center'>{contragent.name}</td>
@@ -533,7 +561,7 @@ export function CounterPartiesView() {
 											className="mt-1 px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
 										>
 											<option value="">Выберите тип</option>
-											<option value="Склад">Склад</option>
+											<option value="cклад">Склад</option>
 											<option value="Клиент">Клиент</option>
 											<option value="Поставщик">Поставщик</option>
 											<option value="Наша компания">Наша компания</option>
@@ -541,7 +569,7 @@ export function CounterPartiesView() {
 									</div>
 
 
-									{editCounterparty?.type === "Склад" && (
+									{editCounterparty?.type === "cклад" && (
 										<div className="mt-4">
 											<label className="block text-sm font-medium text-gray-300">
 												Номер склада
@@ -611,6 +639,55 @@ export function CounterPartiesView() {
 											)
 										)}
 									</div>
+
+									{/* Редактирование почты */}
+									<div className="mt-4">
+										<label className="block text-sm font-medium text-gray-300">Почты</label>
+										{editCounterparty?.email.map((email, index) => (
+											<div key={index} className="flex space-x-2 mb-2">
+												<input
+													type="text"
+													value={email.value}
+													onChange={(e) => handleChangeEmail(e, index)}
+													placeholder="Введите email"
+													className="px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
+												/>
+												<select
+													value={email.type}
+													onChange={(e) => handleChangeEmailType(e, index)}
+													className="px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
+												>
+													<option value="work">Рабочий</option>
+													<option value="personal">Личный</option>
+												</select>
+												<button
+													onClick={() => handleRemoveEmail(index)}
+													className="bg-red-500 text-white px-2 py-1 rounded-md"
+													disabled={editCounterparty.email.length <= 1}
+												>
+													Удалить
+												</button>
+											</div>
+										))}
+										{editCounterparty?.email?.length && editCounterparty.email.length < 2 ? (
+											<button
+												onClick={handleAddEmail}
+												className="bg-green-500 text-white px-4 py-2 rounded-md mt-2"
+											>
+												Добавить почту
+											</button>
+										) : (
+											editCounterparty?.email?.length === 0 && (
+												<button
+													onClick={handleAddEmail}
+													className="bg-green-500 text-white px-4 py-2 rounded-md mt-2"
+												>
+													Добавить почту
+												</button>
+											)
+										)}
+									</div>
+
 
 									<div className="mt-6 flex justify-end space-x-4">
 										<Button

@@ -37,7 +37,7 @@ export function CounterpartyView() {
 	];
 
 	const counterpartyTypes = [
-		{ value: 'Склад', label: 'Склад' },
+		{ value: 'склад', label: 'Склад' },
 		{ value: 'Поставщик', label: 'Поставщик' },
 		{ value: 'Клиент', label: 'Клиент' },
 		{ value: 'Наша компания', label: 'Наша компания' },
@@ -84,7 +84,7 @@ export function CounterpartyView() {
 		}
 
 		// Если выбран тип "Склад", проверяем, что адрес склада заполнен
-		if (type === 'Склад' && !warehouseAddress) {
+		if (type === 'склад' && !warehouseAddress) {
 			setErrors('Для типа "Склад" необходимо заполнить название склада.');
 			return false;
 		}
@@ -183,20 +183,26 @@ export function CounterpartyView() {
 			// Модификация email данных для добавления поля 'parsing'
 			const updatedEmails = formData.emails.map(email => ({
 				...email,
-				parsing: email.type === 'На парсинг' ? true : false
+				parsing: email.type === 'На парсинг' ? true : false, // Если тип "На парсинг", то устанавливаем parsing в true
 			}));
 
 			// Преобразуем warehouseAddress только если тип контрагента 'Склад'
-			const contragentWarehouseNumber = formData.type === 'Склад' && warehouseAddress ? warehouseAddress : null;
+			const contragentWarehouseNumber = formData.type === 'склад' && warehouseAddress ? warehouseAddress : null;
 
-			const response = await axios.post('/new_age/API/contragents/add_contragent.php', {
+			// Создаем объект с данными для отправки на сервер
+			const requestData = {
 				contragent_name: formData.name,
 				contragent_type: formData.type,
+				contragent_warehouse_number: contragentWarehouseNumber ? Number(contragentWarehouseNumber) : null,
 				contragent_inn: formData.inn,
-				contragent_phones: formData.phones,
+				contragent_phones: formData.phones.map(phone => ({
+					value: phone.value,
+					type: phone.type,
+				})),
 				contragent_emails: updatedEmails,
-				contragent_warehouse_number: contragentWarehouseNumber, // Убедитесь, что номер склада правильно передается
-			});
+			};
+
+			const response = await axios.post('/new_age/API/contragents/add_contragent.php', requestData);
 
 			console.log('Успех:', response.data);
 			alert('Контрагент успешно добавлен');
@@ -205,7 +211,8 @@ export function CounterpartyView() {
 		} catch (error) {
 			console.error('Ошибка при добавлении контрагента:', error);
 		}
-	}
+	};
+
 
 
 
@@ -233,7 +240,7 @@ export function CounterpartyView() {
 							))}
 						</select>
 
-						{formData.type === 'Склад' && (
+						{formData.type === 'склад' && (
 							<Field
 								id="warehouseAddress"
 								label="Название склада"

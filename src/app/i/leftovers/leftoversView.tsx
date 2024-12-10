@@ -94,7 +94,8 @@ export function LeftoversView() {
 			try {
 				const response = await axios.get('/new_age/API/contragents/get_contragents.php');
 				const contragentsData = response.data.filter(
-					(contragent: { contragent_type: string }) => contragent.contragent_type === 'Склад'
+					(contragent: { contragent_type: string; contragent_deleted: string }) =>
+						contragent.contragent_type === 'Склад' && contragent.contragent_deleted === '0'
 				);
 				setContragents(
 					contragentsData.map((contragent: any) => ({
