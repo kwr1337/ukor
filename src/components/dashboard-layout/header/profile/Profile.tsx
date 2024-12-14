@@ -29,7 +29,7 @@ export function Profile() {
 				{/*	{data?.user.name?.charAt(0) || 'A'}*/}
 				{/*</div>*/}
 
-				<Button onClick={rout}> Профиль</Button>
+				{/*<Button onClick={rout}> Профиль</Button>*/}
 			</div>
 		</div>
 	)
