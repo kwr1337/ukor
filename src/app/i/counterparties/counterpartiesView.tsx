@@ -9,15 +9,16 @@ import { DASHBOARD_PAGES } from '@/config/pages-url.config'
 import axios from "axios";
 
 type Counterparty = {
-	id: string
-	type: string
-	name: string
-	warehouse_number:string
-	INN: string
-	email: { id: number; value: string; type: string }[]
-	phone: { id: number; value: string; type: string }[]
-	contragent_deleted: boolean
-}
+	id: string;
+	type: string;
+	name: string;
+	warehouse_number: string;
+	INN: string;
+	email: { id: number; value: string; type: string; parsing: boolean }[];
+	phone: { id: number; value: string; type: string }[];
+	contragent_deleted: boolean;
+};
+
 
 export function CounterPartiesView() {
 	const [data, setData] = useState<Counterparty[]>([])
@@ -38,31 +39,32 @@ export function CounterPartiesView() {
 
 	useEffect(() => {
 		fetch('/new_age/API/contragents/get_contragents.php')
-			.then(response => response.json())
-			.then(data => {
+			.then((response) => response.json())
+			.then((data) => {
 				const transformedData: Counterparty[] = data.map((item: any) => ({
 					id: item.contragent_id,
 					type: item.contragent_type,
 					name: item.contragent_name,
 					warehouse_number: item.contragent_warehouse_number,
 					INN: item.contragent_inn,
-					email: item.emails.map((email: any, index: number) => ({
+					email: item.emails.map((email: any) => ({
 						id: email.id || 0,
 						value: email.value,
-						type: email.type
+						type: email.type,
+						parsing: email.parsing || false,
 					})),
-					phone: item.phones.map((phone: any, index: number) => ({
+					phone: item.phones.map((phone: any) => ({
 						id: phone.id || 0,
 						value: phone.value,
-						type: phone.type
+						type: phone.type,
 					})),
-					contragent_deleted: item.contragent_deleted === '1'
-				}))
-				setData(transformedData)
-				console.log(transformedData)
+					contragent_deleted: item.contragent_deleted === '1',
+				}));
+				setData(transformedData);
 			})
-			.catch(error => console.error('Ошибка при загрузке контрагентов:', error))
-	}, [])
+			.catch((error) => console.error('Ошибка при загрузке контрагентов:', error));
+	}, []);
+
 
 	const handleEditCounterparty = (contragent: Counterparty) => {
 		setEditCounterparty(contragent)
@@ -132,15 +134,15 @@ export function CounterPartiesView() {
 		if (editCounterparty) {
 			const updatedPhones = editCounterparty.phone.map((phone) => ({
 				...phone,
-				id: phone.id || 0
+				id: phone.id || 0,
 			}));
 
 			const updatedEmails = editCounterparty.email.map((email) => ({
 				...email,
-				id: email.id || 0
+				id: email.id || 0,
+				parsing: email.parsing || false,
 			}));
 
-			// Отправка данных на сервер
 			fetch('/new_age/API/contragents/update_contragent.php', {
 				method: 'POST',
 				headers: {
@@ -153,17 +155,16 @@ export function CounterPartiesView() {
 					contragent_type: editCounterparty.type,
 					contragent_inn: editCounterparty.INN,
 					contragent_phones: updatedPhones,
-					// contragent_emails: updatedEmails,
+					contragent_emails: updatedEmails,
 				}),
 			})
 				.then((response) => {
 					if (!response.ok) {
 						throw new Error(`Ошибка HTTP: ${response.status}`);
 					}
-					return response.json(); // Получаем JSON из ответа
+					return response.json();
 				})
 				.then((jsonResult) => {
-					// Проверяем поле result
 					if (jsonResult.result === true) {
 						setData((prevData) =>
 							prevData.map((contragent) =>
@@ -171,28 +172,29 @@ export function CounterPartiesView() {
 									? {
 										...contragent,
 										name: editCounterparty.name,
-										contragent_warehouse_number: editCounterparty.warehouse_number,
+										warehouse_number: editCounterparty.warehouse_number,
 										type: editCounterparty.type,
 										INN: editCounterparty.INN,
 										phone: updatedPhones,
-										// email: updatedEmails
+										email: updatedEmails,
 									}
 									: contragent
 							)
 						);
-						setIsOpen(false);
+						setIsOpen(false); // Закрываем модальное окно после обновления данных
 					} else {
-						console.error('Ошибка при обновлении контрагента:', jsonResult.message || 'Неизвестная ошибка');
+						console.error(
+							'Ошибка при обновлении контрагента:',
+							jsonResult.message || 'Неизвестная ошибка'
+						);
 					}
 				})
 				.catch((error) => {
 					console.error('Ошибка при обновлении контрагента:', error.message);
-					console.error('Полная ошибка:', error);
 				});
-
-
 		}
 	};
+
 
 
 	const mf = {
@@ -247,10 +249,15 @@ export function CounterPartiesView() {
 	const handleChangeEmailType = (e: React.ChangeEvent<HTMLSelectElement>, index: number) => {
 		if (editCounterparty) {
 			const updatedEmails = [...editCounterparty.email];
-			updatedEmails[index] = { ...updatedEmails[index], type: e.target.value };
+			updatedEmails[index] = {
+				...updatedEmails[index],
+				type: e.target.value,
+				parsing: e.target.value === "На парсинг" // Устанавливаем parsing в true, если выбран "На парсинг"
+			};
 			setEditCounterparty({ ...editCounterparty, email: updatedEmails });
 		}
 	};
+
 
 	const handleAddPhone = () => {
 		if (editCounterparty && editCounterparty.phone.length < 2) {
@@ -277,11 +284,12 @@ export function CounterPartiesView() {
 				...editCounterparty,
 				email: [
 					...editCounterparty.email,
-					{ id: 0, value: '', type: 'work' }
-				]
+					{ id: 0, value: '', type: 'work', parsing: false }, // Добавлено поле parsing
+				],
 			});
 		}
 	};
+
 
 	const handleRemoveEmail = (index: number) => {
 		if (editCounterparty) {
@@ -657,8 +665,8 @@ export function CounterPartiesView() {
 													onChange={(e) => handleChangeEmailType(e, index)}
 													className="px-4 py-2 w-full bg-gray-700 text-white border border-gray-600 rounded-md"
 												>
-													<option value="work">Рабочий</option>
-													<option value="personal">Личный</option>
+													<option value="Основная">Основная</option>
+													<option value="На парсинг">На парсинг</option>
 												</select>
 												<button
 													onClick={() => handleRemoveEmail(index)}

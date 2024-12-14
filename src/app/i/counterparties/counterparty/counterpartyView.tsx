@@ -27,13 +27,13 @@ type FormData = {
 
 export function CounterpartyView() {
 	const phoneTypes = [
-		{ value: 'Основной', label: 'Основной' },
-		{ value: 'Дополнительный', label: 'Дополнительный' }
+		{ value: 'main', label: 'Основной' },
+		{ value: 'additional', label: 'Дополнительный' }
 	];
 
 	const emailTypes = [
-		{ value: 'Основная', label: 'Основная' },
-		{ value: 'На парсинг', label: 'На парсинг' }
+		{ value: 'main', label: 'Основная' },
+		{ value: 'parsing', label: 'На парсинг' }
 	];
 
 	const counterpartyTypes = [
