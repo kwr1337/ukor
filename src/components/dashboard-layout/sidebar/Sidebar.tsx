@@ -1,21 +1,20 @@
 'use client'
 
-import { ChevronsLeft, ChevronsRight, LayoutDashboard } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 
 import { LogoutButton } from './LogoutButton'
 import { MenuItem } from './MenuItem'
 import { MENU } from './menu.data'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 const SIDEBAR_STATE_KEY = 'sidebar-collapsed'
 
-type SidebarProps = {
-	isOpen: boolean;
-	onToggle: () => void;
-};
+export function Sidebar() {
+	const pathname = usePathname()
 
-export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 	// Инициализация состояния из localStorage, если значение есть
 	const [isCollapsed, setIsCollapsed] = useState(() => {
 		// Получаем состояние из localStorage, если его нет, по умолчанию раскрыта
@@ -82,25 +81,24 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
 						</button>
 					</div>
 					<div className='p-3 relative'>
-						<LogoutButton />
+						<div className={`flex items-center mb-6 mt-4 ${isCollapsed ? 'justify-center' : ''}`}>
+							<ThemeToggle />
+							{!isCollapsed && <span className='ml-2 text-white'>Сменить тему</span>}
+						</div>
+						
 						{MENU.map(item => (
-							<Link
-								href={item.link}
+							<MenuItem
+								item={item}
 								key={item.link}
-								className={`flex items-center gap-2 p-2 my-1 rounded transition-all duration-200 ${
-									isCollapsed ? 'justify-center' : ''
-								} hover:bg-border-hover`}
-								title={isCollapsed ? item.name : ''}
-							>
-								<item.icon size={20} />
-								<span className={`${isCollapsed ? 'hidden' : 'block'}`}>
-									{item.name}
-								</span>
-							</Link>
+								isActive={pathname === item.link}
+								isCollapsed={isCollapsed}
+							/>
 						))}
 					</div>
 				</div>
-				<div />
+				<div className={`p-3 ${isCollapsed ? 'flex justify-center' : ''}`}>
+					<LogoutButton isCollapsed={isCollapsed} />
+				</div>
 			</aside>
 		</div>
 	)

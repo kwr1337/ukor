@@ -1,7 +1,8 @@
 'use client'
 
 import * as cheerio from 'cheerio'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 import { Button } from '@/components/ui/buttons/Button'
 import { DASHBOARD_PAGES } from "@/config/pages-url.config";
@@ -17,6 +18,9 @@ interface Item {
 	brand: string
 	cost: string
 	priceTag: string
+	currency: string
+	expectedDate: string
+	barcode: string // Штрихкод
 }
 
 const suppliers = [
@@ -52,6 +56,18 @@ export function OrderDetailView() {
 	const [sortConfig, setSortConfig] = useState<{ key: keyof Item | null, direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' })
 	const [file, setFile] = useState<File | null>(null)
 	const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null)
+	const [orderNumber, setOrderNumber] = useState<string>('')
+	const [orderTotal, setOrderTotal] = useState<number>(0)
+	const [orderArticlesCount, setOrderArticlesCount] = useState<number>(0)
+	const [warehouseStock, setWarehouseStock] = useState<string>('В наличии')
+	const [expectedDate, setExpectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+	const [shipping, setShipping] = useState<string>('Самовывоз')
+	const [currency, setCurrency] = useState<string>('RUB')
+	const [barcode, setBarcode] = useState<string>('')
+	
+	const searchParams = useSearchParams()
+	const orderId = searchParams.get('id')
+	
 	const [statusUpdates, setStatusUpdates] = useState<
 		{ status: string; time: string; date: string }[]
 	>([
@@ -61,304 +77,248 @@ export function OrderDetailView() {
 			date: new Date().toLocaleDateString()
 		}
 	])
-	const [backendData, setBackendData] = useState<Item[]>([])
-	const [comparisonResults, setComparisonResults] = useState<{
-		[key: string]: { fileQuantity: string; backendQuantity: string }
-	}>({})
-	const router = useRouter();
 
-	const handleFileChange = async (
-		event: React.ChangeEvent<HTMLInputElement>
-	) => {
-		if (!selectedSupplier) {
-			alert('Пожалуйста, выберите контрагента перед загрузкой файла.')
-			return
-		}
+	const router = useRouter()
 
-		if (event.target.files && event.target.files.length > 0) {
-			const selectedFile = event.target.files[0]
-			setFile(selectedFile)
+	// Все возможные статусы заказа согласно документации
+	const allStatuses = [
+		'Новая',
+		'Принят',
+		'На сборке',
+		'Отправлен на склад',
+		'УПД отправлен',
+		'Отправлен клиенту',
+		'Завершен',
+		'Выполнен',
+		'Оплата получена'
+	]
 
-			const newStatusUpdates = [
-				...statusUpdates,
+	useEffect(() => {
+		// Если есть ID заказа, загружаем данные заказа
+		if (orderId) {
+			// Здесь должен быть запрос к API для получения данных заказа
+			// Для примера используем моковые данные
+			setOrderNumber(orderId)
+			setOrderTotal(Math.floor(Math.random() * 50000) + 5000)
+			setOrderArticlesCount(Math.floor(Math.random() * 20) + 1)
+			setBarcode('123456789012')
+			
+			// Генерируем историю статусов
+			const mockStatusHistory = [
 				{
-					status: 'Отправлен запрос на склад',
-					time: new Date().toLocaleTimeString(),
-					date: new Date().toLocaleDateString()
+					status: 'Новая',
+					time: '10:00:00',
+					date: '01.10.2024'
 				}
 			]
-			setStatusUpdates(newStatusUpdates)
-
-			const formData = new FormData()
-			formData.append('files[]', selectedFile)
-
-			try {
-				const response = await fetch(
-					'https://ukor.isprogs.ru/modules/upload/upload_order_request_xls_file.php',
-					{
-						method: 'POST',
-						body: formData
-					}
-				)
-
-				const html = await response.text()
-				parseHTML(html)
-
-				const finalStatusUpdates = [
-					...newStatusUpdates,
-					{
-						status: 'Пришел ответ от склада',
-						time: new Date().toLocaleTimeString(),
-						date: new Date().toLocaleDateString()
-					}
-				]
-				setStatusUpdates(finalStatusUpdates)
-			} catch (error) {
-				console.error('Error uploading file:', error)
-			}
-		}
-	}
-
-	const parseHTML = (html: string) => {
-		const $ = cheerio.load(html)
-
-		const parseTableRows = (tableIndex: number) => {
-			return $('table')
-				.eq(tableIndex)
-				.find('tr')
-				.slice(1)
-				.map((index, row) => {
-					const columns = $(row)
-						.find('td')
-						.map((_, col) => $(col).text().trim())
-						.get()
-					if (columns.length > 0) {
-						return {
-							code: columns[0],
-							name: columns[1],
-							quantity: columns[2],
-							price: columns[3],
-							total: columns[4],
-							gtd: columns[5],
-							brand: columns[6],
-							cost: columns[7],
-							priceTag: columns[8]
-						}
-					}
-					return null
+			
+			// Добавляем случайное количество статусов
+			const statusCount = Math.floor(Math.random() * 3) + 1
+			for (let i = 0; i < statusCount; i++) {
+				const statusIndex = Math.min(i + 1, allStatuses.length - 1)
+				mockStatusHistory.push({
+					status: allStatuses[statusIndex],
+					time: `${10 + i}:${Math.floor(Math.random() * 60)}:00`,
+					date: `0${i + 1}.10.2024`
 				})
-				.get()
-				.filter(item => item !== null)
+			}
+			
+			setStatusUpdates(mockStatusHistory)
 		}
+	}, [orderId])
 
-		const newOrderItems = parseTableRows(0) as Item[]
-		const newRejectedItems = parseTableRows(1) as Item[]
-
-		setOrderItems(newOrderItems)
-		setRejectedItems(newRejectedItems)
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (e.target.files && e.target.files.length > 0) {
+			setFile(e.target.files[0])
+		}
 	}
 
-	// Функция для сохранения данных в LocalStorage
-	const saveOrder = () => {
-		const orderId = new Date().toISOString() // Уникальный идентификатор заказа
-		localStorage.setItem(
-			`order_${orderId}`,
-			JSON.stringify({
-				orderItems,
-				rejectedItems,
-				statusUpdates,
-				selectedSupplier
+	const parseFile = async () => {
+		if (!file) return
+
+		const reader = new FileReader()
+		reader.onload = async e => {
+			const text = e.target?.result as string
+			const $ = cheerio.load(text)
+
+			const items: Item[] = []
+			$('tr').each((i, el) => {
+				if (i === 0) return // Skip header row
+
+				const tds = $(el).find('td')
+				if (tds.length >= 5) {
+					const item: Item = {
+						code: $(tds[0]).text().trim(),
+						name: $(tds[1]).text().trim(),
+						quantity: $(tds[2]).text().trim(),
+						price: $(tds[3]).text().trim(),
+						total: $(tds[4]).text().trim(),
+						gtd: tds.length > 5 ? $(tds[5]).text().trim() : '',
+						brand: 'Бренд ' + Math.floor(Math.random() * 10),
+						cost: '',
+						priceTag: '',
+						currency: 'RUB',
+						expectedDate: new Date().toISOString().split('T')[0],
+						barcode: '123' + Math.floor(Math.random() * 1000000000)
+					}
+					items.push(item)
+				}
 			})
-		)
-		alert('Данные сохранены успешно')
-	}
 
-	const sortItems = (key: keyof Item) => {
-		let direction = 'asc'
-		if (sortConfig.key === key && sortConfig.direction === 'asc') {
-			direction = 'desc'
+			setOrderItems(items)
 		}
-		setSortConfig({ key, direction: direction as 'asc' | 'desc' })
-
-		const sortedItems = [...orderItems].sort((a, b) => {
-			if (a[key] < b[key]) {
-				return direction === 'asc' ? -1 : 1
-			}
-			if (a[key] > b[key]) {
-				return direction === 'asc' ? 1 : -1
-			}
-			return 0
-		})
-		setOrderItems(sortedItems)
+		reader.readAsText(file)
 	}
 
-	const getSortIcon = (key: keyof Item) => {
-		if (sortConfig.key !== key) return null
-		return sortConfig.direction === 'asc' ? '▲' : '▼'
+	const saveOrder = () => {
+		// Здесь должна быть логика сохранения заказа
+		alert('Заказ сохранен')
 	}
 
 	const deleteOrder = () => {
-		var isDelete = confirm("Вы хотите удалить?");
+		// Здесь должна быть логика удаления заказа
+		router.push(DASHBOARD_PAGES.ORDER_FEED)
+	}
 
-		alert(isDelete);
-		if (isDelete === true) router.push(`${DASHBOARD_PAGES.ORDER_FEED}`)
+	const updateOrderStatus = (newStatus: string) => {
+		setStatusUpdates([
+			...statusUpdates,
+			{
+				status: newStatus,
+				time: new Date().toLocaleTimeString(),
+				date: new Date().toLocaleDateString()
+			}
+		])
 	}
 
 	return (
-		<div>
-			<div>
-				<h1 className='text-3xl font-medium'>Новый заказ</h1>
-				<div className='my-3 h-0.5 bg-border w-full' />
-			</div>
-
-			<div className='flex max-w-8xl w-full mx-auto space-x-8'>
-				<div className='flex-1 space-y-8'>
-					{/* Форма ввода */}
-					<div className='flex flex-col md:flex-row md:space-x-4'>
-						{/* Поля ввода */}
-						<div className='flex'>
-							{/* Выбор контрагента */}
-							<div className='py-1'>
-								<label htmlFor='supplierSelect'>Выберите контрагента:</label>
-								<select
-									id='supplierSelect'
-									value={selectedSupplier ?? ''}
-									onChange={e => setSelectedSupplier(e.target.value)}
-									className='px-4 py-2.5 border border-gray-600 rounded-md focus:outline-none focus:ring focus:border-blue-300 bg-gray-700 text-white'
-								>
-									<option value=''>-- Выберите поставщика --</option>
-									{suppliers
-										.filter(supplier => supplier.type === 'Поставщик') // Фильтруем по типу "Поставщик"
-										.map(supplier => (
-											<option key={supplier.id} value={supplier.id}>
-												{supplier.name}
-											</option>
-										))}
-								</select>
-
+		<div className='p-4'>
+			<div className='flex flex-col md:flex-row gap-6'>
+				<div className='flex-1 space-y-6'>
+					{/* Информация о заказе */}
+					<div className='bg-gray-800 rounded-lg p-4 shadow-md'>
+						<h2 className='font-semibold text-xl mb-4'>Информация о заказе</h2>
+						<div className='grid grid-cols-2 gap-4'>
+							<div>
+								<p className='text-gray-400'>Входящий номер заказа:</p>
+								<p>{orderNumber || 'Новый заказ'}</p>
 							</div>
-
-							{/* Загрузка файла */}
-							<div className='flex py-1 ml-3'>
-								<input
-									type='file'
-									onChange={handleFileChange}
-									className='hidden'
-									id='fileInput'
-									disabled={!selectedSupplier}
-								/>
-								<Button
-									className={`bg-blue-500 text-white px-4 py-2 rounded-md ${!selectedSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
-									onClick={() => document.getElementById('fileInput')?.click()}
-									disabled={!selectedSupplier}
+							<div>
+								<p className='text-gray-400'>Количество:</p>
+								<p>{orderArticlesCount}</p>
+							</div>
+							<div>
+								<p className='text-gray-400'>Остаток на складах:</p>
+								<p>{warehouseStock}</p>
+							</div>
+							<div>
+								<p className='text-gray-400'>Валюта:</p>
+								<select 
+									className='bg-gray-700 rounded p-1 w-full'
+									value={currency}
+									onChange={e => setCurrency(e.target.value)}
 								>
-									Выбрать файл и загрузить
-								</Button>
+									<option value='RUB'>RUB</option>
+									<option value='USD'>USD</option>
+									<option value='EUR'>EUR</option>
+								</select>
+							</div>
+							<div>
+								<p className='text-gray-400'>Ожидаемая дата:</p>
+								<input 
+									type='date' 
+									className='bg-gray-700 rounded p-1 w-full'
+									value={expectedDate}
+									onChange={e => setExpectedDate(e.target.value)}
+								/>
+							</div>
+							<div>
+								<p className='text-gray-400'>Штрихкод:</p>
+								<input 
+									type='text' 
+									className='bg-gray-700 rounded p-1 w-full'
+									value={barcode}
+									onChange={e => setBarcode(e.target.value)}
+								/>
+							</div>
+							<div>
+								<p className='text-gray-400'>Итого сумма:</p>
+								<p>{orderTotal} {currency}</p>
 							</div>
 						</div>
 					</div>
 
-					{/* Вывод выбранного контрагента */}
-					{selectedSupplier ? (
-						<div className='py-4'>
-							<h2 className='text-xl font-medium'>Выбранный контрагент: {suppliers.find(s => s.id === selectedSupplier)?.name}</h2>
+					{/* Загрузка файла */}
+					<div className='bg-gray-800 rounded-lg p-4 shadow-md'>
+						<h2 className='font-semibold text-xl mb-4'>Загрузка заказа</h2>
+						<div className='flex flex-col space-y-4'>
+							<input
+								type='file'
+								onChange={handleFileChange}
+								className='bg-gray-700 rounded p-2'
+							/>
+							<Button onClick={parseFile} disabled={!file}>
+								Загрузить файл
+							</Button>
 						</div>
-					) : null}
+					</div>
 
-
-					{/* Таблицы с данными */}
-					<div className='py-4'>
-						<h2 className='text-xl font-medium mb-2'>Состав заказа (На складе {orderItems.length}, отказов {rejectedItems.length})</h2>
-						<table className='min-w-full divide-y divide-gray-700 mt-2'>
+					{/* Таблица товаров - Состав заказа */}
+					<div className='bg-gray-800 rounded-lg p-4 shadow-md'>
+						<h2 className='font-semibold text-xl mb-4'>Состав заказа</h2>
+						<table className='min-w-full divide-y divide-gray-700'>
 							<thead className='bg-gray-700'>
 							<tr>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'
-									onClick={() => sortItems('code')}>
-									Заказ {getSortIcon('code')}
+								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+									Входящий номер заказа
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'
-									onClick={() => sortItems('name')}>
-									Наименование {getSortIcon('name')}
+								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+									Количество
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'
-									onClick={() => sortItems('quantity')}>
-									Артикул {getSortIcon('quantity')}
+								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+									Остаток на складах
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'
-									onClick={() => sortItems('price')}>
-									Цена {getSortIcon('price')}
+								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+									Валюта
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'
-									onClick={() => sortItems('total')}>
-									Итого {getSortIcon('total')}
+								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+									Ожидаемая дата
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'
-									onClick={() => sortItems('gtd')}>
-									Номер ГТД {getSortIcon('gtd')}
+								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+									Штрихкод
 								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'
-									onClick={() => sortItems('brand')}>
-									Бренд {getSortIcon('brand')}
-								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'
-									onClick={() => sortItems('cost')}>
-									Себестоимость {getSortIcon('cost')}
-								</th>
-								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer'
-									onClick={() => sortItems('priceTag')}>
-									Прайс {getSortIcon('priceTag')}
+								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+									Итого сумма
 								</th>
 							</tr>
 							</thead>
 							<tbody className='bg-gray-800 divide-y divide-gray-700'>
-							{orderItems.map(
-								(
-									{
-										code,
-										name,
-										quantity,
-										price,
-										total,
-										gtd,
-										brand,
-										cost,
-										priceTag
-									},
-									index
-								) => (
-									<tr key={index}>
-										<td className='px-6 py-4 text-xs'>{code}</td>
-										<td className='px-6 py-4 text-xs'>{name}</td>
-										<td className='px-6 py-4 text-xs'>{quantity}</td>
-										<td className='px-6 py-4 text-xs'>{price}</td>
-										<td className='px-6 py-4 text-xs'>{total}</td>
-										<td className='px-6 py-4 text-xs'>{gtd}</td>
-										<td className='px-6 py-4 text-xs'>{brand}</td>
-										<td className='px-6 py-4 text-xs'>{cost}</td>
-										<td className='px-6 py-4 text-xs'>{priceTag}</td>
-									</tr>
-								)
-							)}
+							{orderItems.map((item, index) => (
+								<tr key={index}>
+									<td className='px-6 py-4 text-xs'>{item.code}</td>
+									<td className='px-6 py-4 text-xs'>{item.quantity}</td>
+									<td className='px-6 py-4 text-xs'>В наличии</td>
+									<td className='px-6 py-4 text-xs'>{item.currency}</td>
+									<td className='px-6 py-4 text-xs'>{item.expectedDate}</td>
+									<td className='px-6 py-4 text-xs'>{item.barcode}</td>
+									<td className='px-6 py-4 text-xs'>{item.total}</td>
+								</tr>
+							))}
 							</tbody>
 						</table>
 					</div>
 
-					<div className='py-4'>
-						<h2 className='text-xl font-medium mb-2'>Отказ ( {rejectedItems.length})</h2>
-						<table className='min-w-full divide-y divide-gray-700 mt-2'>
+					{/* Отказы */}
+					<div className='bg-gray-800 rounded-lg p-4 shadow-md'>
+						<h2 className='font-semibold text-xl mb-4'>Отказы</h2>
+						<table className='min-w-full divide-y divide-gray-700'>
 							<thead className='bg-gray-700'>
 							<tr>
-								<th
-									scope='col'
-									className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'
-								>
-									Артикул
+								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+									Входящий номер заказа
 								</th>
-								<th
-									scope='col'
-									className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'
-								>
-									Кол-во
+								<th className='px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider'>
+									Наименование
 								</th>
 							</tr>
 							</thead>
@@ -372,7 +332,54 @@ export function OrderDetailView() {
 							</tbody>
 						</table>
 					</div>
-
+					
+					{/* Дополнительные поля */}
+					<div className='bg-gray-800 rounded-lg p-4 shadow-md'>
+						<h2 className='font-semibold text-xl mb-4'>Дополнительная информация</h2>
+						<div className='grid grid-cols-2 gap-4'>
+							<div>
+								<p className='text-gray-400'>Бренд:</p>
+								<select 
+									className='bg-gray-700 rounded p-1 w-full'
+								>
+									<option value=''>Все бренды</option>
+									<option value='brand1'>Бренд 1</option>
+									<option value='brand2'>Бренд 2</option>
+									<option value='brand3'>Бренд 3</option>
+								</select>
+							</div>
+							<div>
+								<p className='text-gray-400'>Ожидаемая дата:</p>
+								<input 
+									type='date' 
+									className='bg-gray-700 rounded p-1 w-full'
+									value={expectedDate}
+									onChange={e => setExpectedDate(e.target.value)}
+								/>
+							</div>
+							<div>
+								<p className='text-gray-400'>Остаток на складах:</p>
+								<select 
+									className='bg-gray-700 rounded p-1 w-full'
+									value={warehouseStock}
+									onChange={e => setWarehouseStock(e.target.value)}
+								>
+									<option value='В наличии'>В наличии</option>
+									<option value='Отсутствует'>Отсутствует</option>
+									<option value='Ожидается'>Ожидается</option>
+								</select>
+							</div>
+							<div>
+								<p className='text-gray-400'>Штрихкод:</p>
+								<input 
+									type='text' 
+									className='bg-gray-700 rounded p-1 w-full'
+									value={barcode}
+									onChange={e => setBarcode(e.target.value)}
+								/>
+							</div>
+						</div>
+					</div>
 				</div>
 
 				{/* Статус заказа */}
@@ -396,24 +403,56 @@ export function OrderDetailView() {
 							</div>
 						))}
 					</div>
+					
+					{/* Кнопки изменения статуса */}
+					<div className='space-y-2'>
+						<h3 className='font-medium'>Изменить статус:</h3>
+						{allStatuses.map((status, index) => {
+							// Показываем только следующий возможный статус
+							const currentStatusIndex = allStatuses.indexOf(statusUpdates[statusUpdates.length - 1].status)
+							if (index === currentStatusIndex + 1) {
+								return (
+									<Button
+										key={status}
+										className='bg-blue-500 text-white px-4 py-2 rounded-md w-full'
+										onClick={() => updateOrderStatus(status)}
+									>
+										{status}
+									</Button>
+								)
+							}
+							return null
+						})}
+					</div>
+					
 					<Button
-						className='hover:bg-green-500 text-white px-4 py-2 rounded-md'
+						className='hover:bg-green-500 text-white px-4 py-2 rounded-md w-full'
 						onClick={saveOrder}
 					>
 						Сохранить
 					</Button>
-					<Button className='bg-gray-300 px-4 py-2 rounded-md'>
+					<Button className='bg-gray-300 px-4 py-2 rounded-md w-full'>
 						Сохранить как черновик
 					</Button>
-					<Button className='bg-blue-500 text-white px-4 py-2 rounded-md'>
-						Отправить на сборку
-					</Button>
-					<Button className='hover:bg-red-500 text-white px-4 py-2 rounded-md mr-1' onClick={event => router.push(`${DASHBOARD_PAGES.ORDER_FEED}`)}>
+					<Button className='hover:bg-red-500 text-white px-4 py-2 rounded-md w-full mr-1' onClick={() => router.push(`${DASHBOARD_PAGES.ORDER_FEED}`)}>
 						Отмена
 					</Button>
-					<Button className='hover:bg-red-500 text-white px-4 py-2 rounded-md' onClick={event => deleteOrder()}>
+					<Button className='hover:bg-red-500 text-white px-4 py-2 rounded-md w-full' onClick={deleteOrder}>
 						Удалить
 					</Button>
+					
+					{/* История изменений */}
+					<div className='mt-8'>
+						<h3 className='font-medium mb-2'>История изменений:</h3>
+						<div className='bg-gray-700 p-3 rounded-lg text-sm'>
+							{statusUpdates.map((update, index) => (
+								<div key={index} className='mb-2 pb-2 border-b border-gray-600 last:border-0'>
+									<div className='font-medium'>{update.status}</div>
+									<div className='text-gray-400'>{update.date} в {update.time}</div>
+								</div>
+							))}
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
