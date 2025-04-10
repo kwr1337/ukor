@@ -36,7 +36,7 @@ export function OrderFeedView() {
         { id: 'upd_sent', name: 'УПД отправлен' },
         { id: 'sent_to_client', name: 'Отправлен клиенту' },
         { id: 'completed', name: 'Завершен' },
-        // { id: 'fulfilled', name: 'Выполнен' },
+        { id: 'fulfilled', name: 'Выполнен' },
         { id: 'payment_received', name: 'Оплата получена' }
     ];
 
