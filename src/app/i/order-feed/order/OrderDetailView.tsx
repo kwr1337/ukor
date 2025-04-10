@@ -2,7 +2,8 @@
 
 import * as cheerio from 'cheerio'
 import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+// Удаляем импорт useSearchParams
+// import { useSearchParams } from 'next/navigation'
 
 import { Button } from '@/components/ui/buttons/Button'
 import { DASHBOARD_PAGES } from "@/config/pages-url.config";
@@ -21,6 +22,11 @@ interface Item {
 	currency: string
 	expectedDate: string
 	barcode: string // Штрихкод
+}
+
+// Добавляем интерфейс для props
+interface OrderDetailViewProps {
+  orderId?: string | null;
 }
 
 const suppliers = [
@@ -50,7 +56,8 @@ const suppliers = [
 	}
 ]
 
-export function OrderDetailView() {
+// Модифицируем компонент, чтобы принимать orderId через props
+export function OrderDetailView({ orderId }: OrderDetailViewProps) {
 	const [orderItems, setOrderItems] = useState<Item[]>([])
 	const [rejectedItems, setRejectedItems] = useState<Item[]>([])
 	const [sortConfig, setSortConfig] = useState<{ key: keyof Item | null, direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' })
@@ -65,8 +72,9 @@ export function OrderDetailView() {
 	const [currency, setCurrency] = useState<string>('RUB')
 	const [barcode, setBarcode] = useState<string>('')
 	
-	const searchParams = useSearchParams()
-	const orderId = searchParams.get('id')
+	// Удаляем получение searchParams
+	// const searchParams = useSearchParams()
+	// const orderId = searchParams.get('id')
 	
 	const [statusUpdates, setStatusUpdates] = useState<
 		{ status: string; time: string; date: string }[]

@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "cross-env NEXT_IGNORE_CSR_BAILOUT=true next build",
+    "build:win": "set NEXT_IGNORE_CSR_BAILOUT=true && next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -23,6 +24,7 @@
     "axios": "^1.6.7",
     "cheerio": "^1.0.0",
     "clsx": "^2.1.0",
+    "cross-env": "^7.0.3",
     "date-fns": "^3.6.0",
     "dayjs": "^1.11.10",
     "git": "^0.1.5",
