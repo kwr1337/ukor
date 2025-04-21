@@ -26,9 +26,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     }
     
-    // Добавляем отладочную информацию
-    console.log('Current theme:', savedTheme || 'dark');
-    console.log('HTML classes:', document.documentElement.className);
   }, []);
 
   const toggleTheme = () => {
@@ -41,10 +38,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       document.documentElement.classList.remove('light-theme');
     }
-    
-    // Добавляем отладочную информацию
-    console.log('Theme switched to:', newTheme);
-    console.log('HTML classes after toggle:', document.documentElement.className);
   };
 
   return (

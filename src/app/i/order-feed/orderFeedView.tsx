@@ -22,21 +22,20 @@ export function OrderFeedView() {
     const [startDate, setStartDate] = useState<string | null>(null);
     const [endDate, setEndDate] = useState<string | null>(null);
     const [searchValue, setSearchValue] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string | null>('Все');
     const [supplierFilter, setSupplierFilter] = useState<string | null>(null);
 
     const router = useRouter();
 
     // Статусы заказов согласно документации
     const orderStatuses = [
+        { id: 'all', name: 'Все' },
         { id: 'new', name: 'Новая' },
         { id: 'accepted', name: 'Принят' },
-        // { id: 'assembly', name: 'На сборке' },
         { id: 'sent_to_warehouse', name: 'Отправлен на склад' },
         { id: 'sent_to_client', name: 'Отправлен клиенту' },
         { id: 'fulfilled', name: 'Выполнен' },
         { id: 'upd_sent', name: 'УПД отправлен' },
-        // { id: 'completed', name: 'Завершен' },
         { id: 'payment_received', name: 'Оплата получена' }
     ];
 
@@ -44,25 +43,44 @@ export function OrderFeedView() {
         const savedState = localStorage.getItem('orderFeedState');
         const savedOrders = localStorage.getItem('orders');
 
+        // Инициализация дат с учетом часового пояса
         const now = new Date();
         const lastWeekStart = subDays(now, 7);
+        
+        // Приводим к UTC для унификации формата на всех серверах
         const formattedStartDate = format(lastWeekStart, 'yyyy-MM-dd');
         const formattedEndDate = format(now, 'yyyy-MM-dd');
 
         if (savedState) {
-            const { start, end, search, status, supplier } = JSON.parse(savedState);
-            setStartDate(start || formattedStartDate);
-            setEndDate(end || formattedEndDate);
-            setSearchValue(search || '');
-            setStatusFilter(status || null);
-            setSupplierFilter(supplier || null);
+            try {
+                const parsed = JSON.parse(savedState);
+                const { start, end, search, status, supplier } = parsed;
+                
+                // Проверяем, валидны ли даты
+                const validStart = start && /^\d{4}-\d{2}-\d{2}$/.test(start) ? start : formattedStartDate;
+                const validEnd = end && /^\d{4}-\d{2}-\d{2}$/.test(end) ? end : formattedEndDate;
+                
+                setStartDate(validStart);
+                setEndDate(validEnd);
+                setSearchValue(search || '');
+                setStatusFilter(status || 'Все');
+                setSupplierFilter(supplier || null);
+            } catch (e) {
+                console.error('Error parsing saved state:', e);
+                setStartDate(formattedStartDate);
+                setEndDate(formattedEndDate);
+            }
         } else {
             setStartDate(formattedStartDate);
             setEndDate(formattedEndDate);
         }
 
         if (savedOrders) {
-            setOrders(JSON.parse(savedOrders));
+            try {
+                setOrders(JSON.parse(savedOrders));
+            } catch (e) {
+                console.error('Error parsing saved orders:', e);
+            }
         }
     }, []);
 
@@ -78,11 +96,23 @@ export function OrderFeedView() {
     }, [startDate, endDate, searchValue, statusFilter, supplierFilter]);
 
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setStartDate(e.target.value);
+        const inputDate = e.target.value;
+        // Проверяем, является ли введенная дата валидной
+        if (/^\d{4}-\d{2}-\d{2}$/.test(inputDate)) {
+            setStartDate(inputDate);
+        } else {
+            console.warn('Invalid date format for start date:', inputDate);
+        }
     };
 
     const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEndDate(e.target.value);
+        const inputDate = e.target.value;
+        // Проверяем, является ли введенная дата валидной
+        if (/^\d{4}-\d{2}-\d{2}$/.test(inputDate)) {
+            setEndDate(inputDate);
+        } else {
+            console.warn('Invalid date format for end date:', inputDate);
+        }
     };
 
     const viewOrderDetails = (id: string) => {
@@ -91,15 +121,29 @@ export function OrderFeedView() {
 
     const filteredOrders = orders.filter(order => {
         const matchesSearch = order.id.includes(searchValue) || order.client.toLowerCase().includes(searchValue.toLowerCase());
-        const matchesStatus = !statusFilter || order.status === statusFilter;
+        const matchesStatus = !statusFilter || statusFilter === 'Все' || 
+            (order.status === statusFilter && order.status !== 'Сборка' && order.status !== 'Завершен');
         const matchesSupplier = !supplierFilter || order.client === supplierFilter;
         
         let matchesDateRange = true;
         if (startDate && endDate) {
-            const orderDate = new Date(order.date);
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            matchesDateRange = orderDate >= start && orderDate <= end;
+            try {
+                // Создаем даты без учета времени, только год-месяц-день
+                const orderDateStr = order.date.split('T')[0]; // Берем только дату, отбрасываем время
+                const orderDate = new Date(orderDateStr);
+                
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                
+                // Устанавливаем время начала дня для стартовой даты и конец дня для конечной даты
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
+                
+                matchesDateRange = orderDate >= start && orderDate <= end;
+            } catch (e) {
+                console.error('Error comparing dates:', e);
+                matchesDateRange = true;
+            }
         }
         
         return matchesSearch && matchesStatus && matchesSupplier && matchesDateRange;
@@ -115,7 +159,7 @@ export function OrderFeedView() {
                                 <Button
                                     key={status.id}
                                     onClick={() => setStatusFilter(status.name)}
-                                    className={`px-4 py-2 ${statusFilter === status.name ? 'bg-blue-500' : 'bg-gray-700'} text-white rounded-md`}
+                                    className={`px-4 py-2 ${statusFilter === status.name || (status.name === 'Все' && !statusFilter) ? 'bg-blue-500' : 'bg-gray-700'} text-white rounded-md`}
                                 >
                                     {status.name}
                                 </Button>

@@ -91,11 +91,9 @@ export function OrderDetailView() {
 	const allStatuses = [
 		'Новая',
 		'Принят',
-		'На сборке',
 		'Отправлен на склад',
 		'УПД отправлен',
 		'Отправлен клиенту',
-		'Завершен',
 		'Выполнен',
 		'Оплата получена'
 	]
@@ -471,6 +469,9 @@ export function OrderDetailView() {
 									break;
 								case 'УПД отправлен':
 									nextStatus = 'Оплата получена';
+									break;
+								case 'Оплата получена':
+									nextStatus = null;
 									break;
 								default:
 									nextStatus = null;

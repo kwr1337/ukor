@@ -24,6 +24,7 @@ export function HistoryView({ orderId }: HistoryViewProps) {
   const router = useRouter()
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     // Загружаем историю изменений из localStorage
@@ -163,7 +164,7 @@ export function HistoryView({ orderId }: HistoryViewProps) {
                   Стало
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Изменения
+                  Изменил(а)
                 </th>
               </tr>
             </thead>
@@ -172,7 +173,7 @@ export function HistoryView({ orderId }: HistoryViewProps) {
                 <tr key={index} className="hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div>{item.date} · {item.time}</div>
-                    <div className="text-xs text-gray-400">2023</div>
+                    <div className="text-xs text-gray-400">{currentYear}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {item.type}
