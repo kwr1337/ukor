@@ -250,10 +250,15 @@ export function OrderDetailView() {
 
 	// При изменении статуса заказа
 	const handleStatusChange = (newStatus: string) => {
-		if (orderId && newStatus !== statusUpdates[statusUpdates.length - 1].status) {
+		// Проверяем, что новый статус отличается от текущего
+		if (newStatus !== statusUpdates[statusUpdates.length - 1].status) {
 			const oldStatus = statusUpdates[statusUpdates.length - 1].status;
 			updateOrderStatus(newStatus);
-			saveHistoryRecord('Статус заказа', 'Изменение статуса', oldStatus, newStatus);
+			
+			// Сохраняем запись в историю только если у нас есть orderId
+			if (orderId) {
+				saveHistoryRecord('Статус заказа', 'Изменение статуса', oldStatus, newStatus);
+			}
 		}
 	};
 
