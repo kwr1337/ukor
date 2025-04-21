@@ -514,9 +514,9 @@ export function OrderDetailView() {
 					>
 						Сохранить
 					</Button>
-					<Button className='bg-gray-300 px-4 py-2 rounded-md w-full'>
+					{/* <Button className='bg-gray-300 px-4 py-2 rounded-md w-full'>
 						Сохранить как черновик
-					</Button>
+					</Button> */}
 					<Button className='hover:bg-red-500 text-white px-4 py-2 rounded-md w-full mr-1' onClick={() => router.push(`${DASHBOARD_PAGES.ORDER_FEED}`)}>
 						Отмена
 					</Button>
