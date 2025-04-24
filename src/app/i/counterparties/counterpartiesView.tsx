@@ -7,7 +7,7 @@ import Tooltip from '@mui/material/Tooltip';
 import { Button } from '@/components/ui/buttons/Button'
 import { DASHBOARD_PAGES } from '@/config/pages-url.config'
 import axios from "axios";
-import { API_BASE_URL } from '@/config/api.config';
+
 
 type Counterparty = {
 	id: string;
@@ -31,7 +31,7 @@ export function CounterPartiesView() {
 		string[]
 	>([])
 	const [searchValue, setSearchValue] = useState('')
-	const [statusFilter, setStatusFilter] = useState<string | null>(null)
+	const [statusFilter, setStatusFilter] = useState<string | null>(null)		
 	const router = useRouter()
 	const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 	const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -39,7 +39,7 @@ export function CounterPartiesView() {
 	const [deleteFilter, setDeleteFilter] = useState<'all' | 'deleted' | 'active'>('all')
 
 	useEffect(() => {
-		fetch(`${API_BASE_URL}/new_age/API/contragents/get_contragents.php`)
+		fetch(`/api/contragents/get_contragents.php`)
 			.then((response) => response.json())
 			.then((data) => {
 				const transformedData: Counterparty[] = data.map((item: any) => ({
@@ -92,7 +92,7 @@ export function CounterPartiesView() {
 
 
 	const handleDeleteCounterparty = (id: any) => {
-		fetch(`${API_BASE_URL}/new_age/API/contragents/delete_contragent.php`, {
+		fetch(`/api/contragents/delete_contragent.php`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ export function CounterPartiesView() {
 				parsing: email.parsing || false,
 			}));
 
-			fetch(`${API_BASE_URL}/new_age/API/contragents/update_contragent.php`, {
+			fetch(`/api/contragents/update_contragent.php`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

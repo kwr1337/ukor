@@ -66,7 +66,7 @@ export function CounterpartyView() {
 	useEffect(() => {
 		const fetchCounterparties = async () => {
 			try {
-				const response = await axios.get(`${API_BASE_URL}/new_age/API/contragents/get_contragents.php`);
+				const response = await axios.get(`/api/contragents/get_contragents.php`);
 				setExistingCounterparties(response.data);
 			} catch (error) {
 				console.error('Ошибка при получении контрагентов:', error);
@@ -203,7 +203,7 @@ export function CounterpartyView() {
 				contragent_emails: updatedEmails,
 			};
 
-			const response = await axios.post(`${API_BASE_URL}/new_age/API/contragents/add_contragent.php`, requestData);
+			const response = await axios.post(`/api/contragents/add_contragent.php`, requestData);
 
 			console.log('Успех:', response.data);
 			alert('Контрагент успешно добавлен');

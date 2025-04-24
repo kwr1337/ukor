@@ -56,8 +56,8 @@ export function LeftoversView() {
 		setLoading(true);
 		try {
 			const url = contragentId
-				? `${API_BASE_URL}/new_age/API/warehouses/get_warehouses.php?filter[contragent_id]=${contragentId}`
-				: `${API_BASE_URL}/new_age/API/warehouses/get_warehouses.php`;
+				? `/api/warehouses/get_warehouses.php?filter[contragent_id]=${contragentId}`
+				: `/api/warehouses/get_warehouses.php`;
 
 			const response = await axios.get(url);
 
@@ -81,7 +81,7 @@ export function LeftoversView() {
 	useEffect(() => {
 		const fetchBrands = async () => {
 			try {
-				const response = await axios.get(`${API_BASE_URL}/new_age/API/nomenclature/get_nomenclature.php`)
+				const response = await axios.get(`/api/nomenclature/get_nomenclature.php`)
 				const brandData: string[] = response.data.map(
 					(item: { nomenclature_brand: string }) => item.nomenclature_brand
 				)
@@ -93,7 +93,7 @@ export function LeftoversView() {
 
 		const fetchContragents = async () => {
 			try {
-				const response = await axios.get(`${API_BASE_URL}/new_age/API/contragents/get_contragents.php`);
+				const response = await axios.get(`/api/contragents/get_contragents.php`);
 				const contragentsData = response.data.filter(
 					(contragent: { contragent_type: string; contragent_deleted: string }) =>
 						contragent.contragent_type === 'Склад' && contragent.contragent_deleted === '0'
