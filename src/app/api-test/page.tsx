@@ -4,25 +4,24 @@ import { useState } from 'react'
 import { API_BASE_URL } from '@/config/api.config'
 
 export default function ApiTestPage() {
-  const [resultDirect, setResultDirect] = useState<string>('');
   const [resultProxy, setResultProxy] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   const testAPI = async () => {
     setError(null);
+    setResultProxy(''); // Очищаем предыдущий результат
     
     try {
-      // Тест 1: прямой URL
-      const directUrl = 'http://147.45.153.94/new_age/API/contragents/get_contragents.php';
-      console.log('Тестирую прямой URL:', directUrl);
-      const directResponse = await fetch(directUrl);
-      const directData = await directResponse.json();
-      setResultDirect(JSON.stringify(directData.slice(0, 2), null, 2));
-      
-      // Тест 2: через rewrites
-      const proxyUrl = `${API_BASE_URL}/new_age/API/contragents/get_contragents.php`;
-      console.log('Тестирую через rewrites:', proxyUrl);
+      // Используем относительный путь для прокси с префиксом /api
+      const proxyUrl = `/api/contragents/get_contragents.php`;
+      console.log('Тестирую через прокси:', proxyUrl);
       const proxyResponse = await fetch(proxyUrl);
+
+      // Проверяем статус ответа
+      if (!proxyResponse.ok) {
+        throw new Error(`Ошибка сети: ${proxyResponse.status} ${proxyResponse.statusText}`);
+      }
+
       const proxyData = await proxyResponse.json();
       setResultProxy(JSON.stringify(proxyData.slice(0, 2), null, 2));
     } catch (err: any) {
@@ -33,14 +32,14 @@ export default function ApiTestPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Тест API-соединений</h1>
+      <h1 className="text-2xl font-bold mb-4">Тест API через Proxy</h1>
       
       <div className="mb-4">
         <button 
           onClick={testAPI}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
-          Проверить API
+          Проверить API через Proxy
         </button>
       </div>
       
@@ -50,28 +49,18 @@ export default function ApiTestPage() {
         </div>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="bg-gray-800 p-4 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Прямой URL</h2>
+          <h2 className="text-xl font-semibold mb-2">Результат через Proxy</h2>
           <div className="mb-2 text-sm text-gray-400">
-            http://147.45.153.94/new_age/API/contragents/get_contragents.php
+            /api/contragents/get_contragents.php
           </div>
           <pre className="bg-gray-900 p-3 rounded overflow-auto max-h-60 text-sm">
-            {resultDirect || 'Нажмите кнопку "Проверить API"'}
-          </pre>
-        </div>
-        
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Через rewrites</h2>
-          <div className="mb-2 text-sm text-gray-400">
-            {API_BASE_URL}/new_age/API/contragents/get_contragents.php
-          </div>
-          <pre className="bg-gray-900 p-3 rounded overflow-auto max-h-60 text-sm">
-            {resultProxy || 'Нажмите кнопку "Проверить API"'}
+            {resultProxy || 'Нажмите кнопку "Проверить API через Proxy"'}
           </pre>
         </div>
 
-        <div className="col-span-1 md:col-span-2 bg-gray-800 p-4 rounded-lg">
+        <div className="col-span-1 bg-gray-800 p-4 rounded-lg">
           <h2 className="text-xl font-semibold mb-2">Информация о среде</h2>
           <div className="bg-gray-900 p-3 rounded overflow-auto">
             <div>
