@@ -270,7 +270,7 @@ export function LeftoversView() {
 	};
 
 	const handleLog = () => {
-		window.open(`${API_BASE_URL}/new_age/parse_post_files/show_parsing.php`, '_blank')
+		window.open(`http://147.45.153.94/new_age/parse_post_files/show_parsing.php`, '_blank')
 	};
 
 
