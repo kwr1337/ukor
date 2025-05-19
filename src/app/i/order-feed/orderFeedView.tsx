@@ -245,18 +245,31 @@ export function OrderFeedView() {
                                         </tr>
                                         </thead>
                                         <tbody className="bg-gray-800 divide-y divide-gray-700">
-                                        {paginatedOrders.map((order) => (
-                                            <tr key={order.order_id} onClick={() => viewOrderDetails(order.order_id)} className="hover:bg-gray-700 cursor-pointer">
-                                                <td className="px-6 py-4 text-xs text-center">{order.order_id}</td>
-                                                <td className="px-6 py-4 text-xs text-center">{order.order_number || '-'}</td>
-                                                <td className="px-6 py-4 text-xs text-center">{order.order_contragent || '-'}</td>
-                                                <td className="px-6 py-4 text-xs text-center">-</td>
-                                                <td className="px-6 py-4 text-xs text-center">{order.order_add_date || '-'}</td>
-                                                <td className="px-6 py-4 text-xs text-center">{order.products ? order.products.length : '-'}</td>
-                                                <td className="px-6 py-4 text-xs text-center">-</td>
-                                                <td className="px-6 py-4 text-xs text-center">-</td>
-                                            </tr>
-                                        ))}
+                                        {paginatedOrders.map((order) => {
+                                            // Считаем сумму заказа по всем товарам
+                                            let sum = '-';
+                                            let currency = '';
+                                            if (order.products && Array.isArray(order.products) && order.products.length > 0) {
+                                                sum = order.products.reduce((acc: number, p: any) => {
+                                                    const price = parseFloat(p.order_product_price) || 0;
+                                                    const amount = parseFloat(p.order_product_amount) || 0;
+                                                    return acc + price * amount;
+                                                }, 0);
+                                                currency = order.products[0]?.order_product_currency || '';
+                                            }
+                                            return (
+                                                <tr key={order.order_id} onClick={() => viewOrderDetails(order.order_id)} className="hover:bg-gray-700 cursor-pointer">
+                                                    <td className="px-6 py-4 text-xs text-center">{order.order_id}</td>
+                                                    <td className="px-6 py-4 text-xs text-center">{order.order_number || '-'}</td>
+                                                    <td className="px-6 py-4 text-xs text-center">{order.order_contragent || '-'}</td>
+                                                    <td className="px-6 py-4 text-xs text-center">-</td>
+                                                    <td className="px-6 py-4 text-xs text-center">{order.order_add_date || '-'}</td>
+                                                    <td className="px-6 py-4 text-xs text-center">{order.products ? order.products.length : '-'}</td>
+                                                    <td className="px-6 py-4 text-xs text-center">{sum !== '-' ? `${sum} ${currency}` : '-'}</td>
+                                                    <td className="px-6 py-4 text-xs text-center">-</td>
+                                                </tr>
+                                            );
+                                        })}
                                         </tbody>
                                     </table>
                                 </div>
