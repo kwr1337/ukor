@@ -6,6 +6,8 @@ import { ru } from 'date-fns/locale';
 import { Button } from "@/components/ui/buttons/Button";
 import { useRouter } from "next/navigation";
 import { DASHBOARD_PAGES } from "@/config/pages-url.config";
+import axios from 'axios';
+import Loader from '@/components/ui/Loader/loader';
 
 export function OrderFeedView() {
     const defaultOrders = [
@@ -18,12 +20,15 @@ export function OrderFeedView() {
         { id: '603', client: 'AUTODOC', status: 'Сборка', date: '2025-04-15', articles: 7, sum: 15000, upl: '-' }
     ];
 
-    const [orders, setOrders] = useState(defaultOrders);
+    const [orders, setOrders] = useState<any[]>([]);
     const [startDate, setStartDate] = useState<string | null>(null);
     const [endDate, setEndDate] = useState<string | null>(null);
     const [searchValue, setSearchValue] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>('Все');
     const [supplierFilter, setSupplierFilter] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ordersPerPage = 10;
 
     const router = useRouter();
 
@@ -95,6 +100,14 @@ export function OrderFeedView() {
         localStorage.setItem('orderFeedState', JSON.stringify(state));
     }, [startDate, endDate, searchValue, statusFilter, supplierFilter]);
 
+    useEffect(() => {
+        setLoading(true);
+        axios.get('/api/orders/get_orders.php')
+            .then(res => setOrders(res.data))
+            .catch(err => console.error('Ошибка загрузки заказов:', err))
+            .finally(() => setLoading(false));
+    }, []);
+
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const inputDate = e.target.value;
         // Проверяем, является ли введенная дата валидной
@@ -120,10 +133,11 @@ export function OrderFeedView() {
     };
 
     const filteredOrders = orders.filter(order => {
-        const matchesSearch = order.id.includes(searchValue) || order.client.toLowerCase().includes(searchValue.toLowerCase());
-        const matchesStatus = !statusFilter || statusFilter === 'Все' || 
-            (order.status === statusFilter && order.status !== 'Сборка' && order.status !== 'Завершен');
-        const matchesSupplier = !supplierFilter || order.client === supplierFilter;
+        const matchesSearch =
+            (order.order_id && order.order_id.toString().includes(searchValue)) ||
+            (order.order_contragent && order.order_contragent.toString().toLowerCase().includes(searchValue.toLowerCase()));
+        const matchesStatus = !statusFilter || statusFilter === 'Все';
+        const matchesSupplier = !supplierFilter || order.order_contragent === supplierFilter;
         
         let matchesDateRange = true;
         if (startDate && endDate) {
@@ -149,8 +163,15 @@ export function OrderFeedView() {
         return matchesSearch && matchesStatus && matchesSupplier && matchesDateRange;
     });
 
+    // Пагинация
+    const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+    const paginatedOrders = filteredOrders.slice((currentPage - 1) * ordersPerPage, currentPage * ordersPerPage);
+
+    const handlePrevPage = () => setCurrentPage(p => Math.max(1, p - 1));
+    const handleNextPage = () => setCurrentPage(p => Math.min(totalPages, p + 1));
+
     return (
-        <div>
+        <div className="flex flex-col min-h-screen">
             <div className="max-w-8xl w-full mx-auto space-y-8">
                 <div className="shadow-md rounded-lg overflow-hidden">
                     <div className="px-6 py-4">
@@ -204,33 +225,62 @@ export function OrderFeedView() {
                             </Button>
                         </div>
                     </div>
-                    <div className="px-6 py-4">
-                        <table className="min-w-full divide-y divide-gray-700">
-                            <thead className="bg-gray-700">
-                            <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">id</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">клиент</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">статус</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">дата заказа</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Кол-во артикулов</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Сумма</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Номер УПД</th>
-                            </tr>
-                            </thead>
-                            <tbody className="bg-gray-800 divide-y divide-gray-700">
-                            {filteredOrders.map((order) => (
-                                <tr key={order.id} onClick={() => viewOrderDetails(order.id)} className="cursor-pointer hover:bg-gray-700">
-                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.id}</td>
-                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.client}</td>
-                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.status}</td>
-                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{format(new Date(order.date), 'dd.MM.yyyy', { locale: ru })}</td>
-                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.articles}</td>
-                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.sum}</td>
-                                    <td className="px-6 py-4 text-xs whitespace-nowrap">{order.upl}</td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
+                    <div className="px-6 py-4 ">
+                        <div className="flex-1 flex flex-col overflow-auto">
+                            {loading ? (
+                                <Loader />
+                            ) : (
+                                <div className="flex-1 overflow-auto">
+                                    <table className="min-w-full divide-y divide-gray-700">
+                                        <thead className="bg-gray-700">
+                                        <tr>
+                                            <th className="px-6 py-3 text-xs text-center">id</th>
+                                            <th className="px-6 py-3 text-xs text-center">Номер заказа</th>
+                                            <th className="px-6 py-3 text-xs text-center">Клиент</th>
+                                            <th className="px-6 py-3 text-xs text-center">Статус</th>
+                                            <th className="px-6 py-3 text-xs text-center">Дата заказа</th>
+                                            <th className="px-6 py-3 text-xs text-center">Кол-во артикулов</th>
+                                            <th className="px-6 py-3 text-xs text-center">Сумма</th>
+                                            <th className="px-6 py-3 text-xs text-center">Номер УПД</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody className="bg-gray-800 divide-y divide-gray-700">
+                                        {paginatedOrders.map((order) => (
+                                            <tr key={order.order_id} onClick={() => viewOrderDetails(order.order_id)} className="hover:bg-gray-700 cursor-pointer">
+                                                <td className="px-6 py-4 text-xs text-center">{order.order_id}</td>
+                                                <td className="px-6 py-4 text-xs text-center">{order.order_number || '-'}</td>
+                                                <td className="px-6 py-4 text-xs text-center">{order.order_contragent || '-'}</td>
+                                                <td className="px-6 py-4 text-xs text-center">-</td>
+                                                <td className="px-6 py-4 text-xs text-center">{order.order_add_date || '-'}</td>
+                                                <td className="px-6 py-4 text-xs text-center">{order.products ? order.products.length : '-'}</td>
+                                                <td className="px-6 py-4 text-xs text-center">-</td>
+                                                <td className="px-6 py-4 text-xs text-center">-</td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex justify-between items-center mt-4">
+                            <button
+                                onClick={handlePrevPage}
+                                disabled={currentPage === 1}
+                                className="px-4 py-2 bg-gray-700 text-white rounded-md disabled:opacity-50"
+                            >
+                                Предыдущая
+                            </button>
+                            <span className="text-sm text-gray-300">
+                                Страница {currentPage} из {totalPages}
+                            </span>
+                            <button
+                                onClick={handleNextPage}
+                                disabled={currentPage === totalPages}
+                                className="px-4 py-2 bg-gray-700 text-white rounded-md disabled:opacity-50"
+                            >
+                                Следующая
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

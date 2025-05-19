@@ -3,6 +3,7 @@
 import * as cheerio from 'cheerio'
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import axios from 'axios'
 
 import { Button } from '@/components/ui/buttons/Button'
 import { DASHBOARD_PAGES } from "@/config/pages-url.config";
@@ -71,6 +72,7 @@ export function OrderDetailView() {
 	const [upd, setUpd] = useState<string>('2132332')
 	const [totalSum, setTotalSum] = useState<string>('288 000')
 	const [createdBy, setCreatedBy] = useState<string>('Система')
+	const [order, setOrder] = useState<any | null>(null)
 	
 	const searchParams = useSearchParams()
 	const orderId = searchParams?.get('id')
@@ -99,38 +101,15 @@ export function OrderDetailView() {
 	]
 
 	useEffect(() => {
-		// Если есть ID заказа, загружаем данные заказа
 		if (orderId) {
-			// Здесь должен быть запрос к API для получения данных заказа
-			// Для примера используем моковые данные
-			setOrderNumber(orderId)
-			setOrderTotal(Math.floor(Math.random() * 50000) + 5000)
-			setOrderArticlesCount(Math.floor(Math.random() * 20) + 1)
-			setBarcode('123456789012')
-			
-			// Генерируем историю статусов
-			const mockStatusHistory = [
-				{
-					status: 'Новая',
-					time: '10:00:00',
-					date: '17.04.2025'
-				}
-			]
-			
-			// Добавляем случайное количество статусов
-			const statusCount = Math.floor(Math.random() * 3) + 1
-			for (let i = 0; i < statusCount; i++) {
-				const statusIndex = Math.min(i + 1, allStatuses.length - 1)
-				mockStatusHistory.push({
-					status: allStatuses[statusIndex],
-					time: `${10 + i}:${Math.floor(Math.random() * 60)}:00`,
-					date: `0${i + 1}.10.2024`
+			axios.get('/api/orders/get_orders.php')
+				.then(res => {
+					const found = res.data.find((o: any) => o.order_id === orderId);
+					setOrder(found || null);
 				})
-			}
-			
-			setStatusUpdates(mockStatusHistory)
+				.catch(err => console.error('Ошибка загрузки заказа:', err));
 		}
-	}, [orderId])
+	}, [orderId]);
 
 	useEffect(() => {
 		// Подсчет количества товаров в наличии и не в наличии
@@ -262,6 +241,18 @@ export function OrderDetailView() {
 		}
 	};
 
+	if (!order) return <div>Загрузка...</div>;
+
+	// Данные для блока информации
+	const info = {
+		id: order.order_id || '-',
+		sum: order.order_total || '-',
+		client: order.order_contragent || '-',
+		upl: order.upd_number || '-',
+		articles: order.products ? order.products.length : '-',
+		created: order.created_by || '-',
+	};
+
 	return (
 		<div className='p-4'>
 			<div className='flex flex-col md:flex-row gap-6'>
@@ -272,27 +263,27 @@ export function OrderDetailView() {
 						<div className='grid grid-cols-2 gap-4'>
 							<div>
 								<p className='text-gray-400'>Id заказа:</p>
-								<p>{orderNumber || '1'}</p>
+								<p>{info.id}</p>
 							</div>
 							<div>
 								<p className='text-gray-400'>Сумма:</p>
-								<p>{totalSum} RUB</p>
+								<p>{info.sum}</p>
 							</div>
 							<div>
 								<p className='text-gray-400'>Клиент:</p>
-								<p>{clientName}</p>
+								<p>{info.client}</p>
 							</div>
 							<div>
 								<p className='text-gray-400'>Номер УПД:</p>
-								<p>{upd}</p>
+								<p>{info.upl}</p>
 							</div>
 							<div>
 								<p className='text-gray-400'>Кол-во артикулов:</p>
-								<p>{orderArticlesCount || '232'}</p>
+								<p>{info.articles}</p>
 							</div>
 							<div>
 								<p className='text-gray-400'>Создан:</p>
-								<p>{createdBy}</p>
+								<p>{info.created}</p>
 							</div>
 						</div>
 					</div>
@@ -349,22 +340,22 @@ export function OrderDetailView() {
 								</tr>
 								</thead>
 								<tbody className='bg-gray-800 divide-y divide-gray-700'>
-								{orderItems.map((item, index) => (
-									<tr key={index}>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.orderId || orderNumber}</td>
-										<td className='px-2 py-2 text-xs max-w-[150px] truncate'>{item.name}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.code}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.brand}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.quantity}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.price}</td>
+								{order.products.map((product: any) => (
+									<tr key={product.order_product_id}>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_id || '-'}</td>
+										<td className='px-2 py-2 text-xs max-w-[150px] truncate'>{product.order_product_name || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_article || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_brand || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_amount || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_price || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>В наличии</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.currency}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.expectedDate}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.barcode}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.gtd}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.cost}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.priceTag}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.total}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_currency || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_expected_date || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_bar_code || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_gtd || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_cost || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_price_tag || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_total || '-'}</td>
 									</tr>
 								))}
 								</tbody>
