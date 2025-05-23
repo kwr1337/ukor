@@ -147,7 +147,9 @@ export function OrderDetailView() {
 		const fetchLeftovers = async () => {
 			try {
 				setLoadingLeftovers(true);
-				const response = await axios.get(`${API_BASE_URL}/API/warehouses/get_warehouses.php`);
+				const url = `/api/warehouses/get_warehouses.php`;
+				// const response = await axios.get(`${API_BASE_URL}/API/warehouses/get_warehouses.php`);
+				const response = await axios.get(url);
 				// Собираем все nomenclature из всех складов
 				const nomenclature = Array.isArray(response.data)
 					? response.data.flatMap((warehouse: any) => warehouse.nomenclature || [])
