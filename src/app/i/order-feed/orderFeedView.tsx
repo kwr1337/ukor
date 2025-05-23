@@ -32,6 +32,20 @@ export function OrderFeedView() {
 
     const router = useRouter();
 
+    // Функция для преобразования статуса из бэкенда в читаемый формат
+    const getReadableStatus = (status: string) => {
+        const statusMap: { [key: string]: string } = {
+            'new': 'Новая',
+            'accepted': 'Принят',
+            'sent_to_warehouse': 'Отправлен на склад',
+            'sent_to_client': 'Отправлен клиенту',
+            'fulfilled': 'Выполнен',
+            'upd_sent': 'УПД отправлен',
+            'payment_received': 'Оплата получена'
+        };
+        return statusMap[status] || status;
+    };
+
     // Статусы заказов согласно документации
     const orderStatuses = [
         { id: 'all', name: 'Все' },
@@ -262,7 +276,7 @@ export function OrderFeedView() {
                                                     <td className="px-6 py-4 text-xs text-center">{order.order_id}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{order.order_number || '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{order.order_contragent || '-'}</td>
-                                                    <td className="px-6 py-4 text-xs text-center">-</td>
+                                                    <td className="px-6 py-4 text-xs text-center">{getReadableStatus(order.order_status) || '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{order.order_add_date || '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{order.products ? order.products.length : '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{sum !== '-' ? `${sum} ${currency}` : '-'}</td>

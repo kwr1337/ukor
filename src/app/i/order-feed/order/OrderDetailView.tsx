@@ -92,6 +92,17 @@ export function OrderDetailView() {
 
 	const router = useRouter()
 
+	// Функция для перевода значений создателя заказа на русский язык
+	const getReadableCreator = (creator: string) => {
+		const creatorMap: { [key: string]: string } = {
+			'system': 'Система',
+			'manager': 'Менеджер',
+			'admin': 'Администратор',
+			'user': 'Пользователь'
+		};
+		return creatorMap[creator.toLowerCase()] || creator;
+	};
+
 	// Все возможные статусы заказа согласно документации
 	const allStatuses = [
 		'Новая',
@@ -136,7 +147,7 @@ export function OrderDetailView() {
 		const fetchLeftovers = async () => {
 			try {
 				setLoadingLeftovers(true);
-				const response = await axios.get(`${API_BASE_URL}/api/warehouses/get_warehouses.php`);
+				const response = await axios.get(`${API_BASE_URL}/API/warehouses/get_warehouses.php`);
 				// Собираем все nomenclature из всех складов
 				const nomenclature = Array.isArray(response.data)
 					? response.data.flatMap((warehouse: any) => warehouse.nomenclature || [])
@@ -273,7 +284,7 @@ export function OrderDetailView() {
 		client: order.order_contragent || '-',
 		upl: order.upd_number || '-',
 		articles: order.products ? order.products.length : '-',
-		created: order.created_by || '-',
+		created: getReadableCreator(order.order_created_by) || '-'
 	};
 
 	const productsWithStock = (order.products || []).map((product: any) => {
@@ -295,6 +306,19 @@ export function OrderDetailView() {
 	type ProductWithStock = typeof productsWithStock[number];
 	const totalOrderSum = productsWithStock.reduce((sum: number, p: ProductWithStock) => sum + (typeof p.total === 'number' ? p.total : 0), 0);
 	const orderCurrency = productsWithStock[0]?.currency || '-';
+
+	// Получаем список отказов
+	const rejectedProducts = productsWithStock
+		.filter((product: ProductWithStock) => product.sklad_status === 'Отказ')
+		.map((product: ProductWithStock) => ({
+			orderId: order.order_id,
+			name: product.order_product_name,
+			code: product.order_product_article,
+			brand: product.order_product_brand,
+			quantity: product.amount,
+			expectedDate: product.order_expected_date,
+			barcode: product.order_product_bar_code
+		}));
 
 	return (
 		<div className='p-4'>
@@ -412,7 +436,7 @@ export function OrderDetailView() {
 								</tr>
 								</thead>
 								<tbody className='bg-gray-800 divide-y divide-gray-700'>
-								{rejectedItems.map((item, index) => (
+								{rejectedProducts.map((item: Item, index: number) => (
 									<tr key={index}>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.orderId || orderNumber}</td>
 										<td className='px-2 py-2 text-xs max-w-[150px] truncate'>{item.name}</td>
