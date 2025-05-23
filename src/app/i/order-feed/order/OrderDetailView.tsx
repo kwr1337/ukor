@@ -384,7 +384,7 @@ export function OrderDetailView() {
 								{productsWithStock.map((product: ProductWithStock, index: number) => (
 									<tr key={index}>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_id || '-'}</td>
-										<td className='px-2 py-2 text-xs max-w-[150px] truncate'>{product.order_product_name || '-'}</td>
+										<td className='px-2 py-2 text-xs'>{product.order_product_name || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_article || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_brand || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.amount}</td>
@@ -441,7 +441,7 @@ export function OrderDetailView() {
 								{rejectedProducts.map((item: Item, index: number) => (
 									<tr key={index}>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.orderId || orderNumber}</td>
-										<td className='px-2 py-2 text-xs max-w-[150px] truncate'>{item.name}</td>
+										<td className='px-2 py-2 text-xs'>{item.name}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.code}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.brand}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.quantity}</td>
