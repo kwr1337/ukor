@@ -249,7 +249,7 @@ export function OrderFeedView() {
                                         <thead className="bg-gray-700">
                                         <tr>
                                             <th className="px-6 py-3 text-xs text-center">id</th>
-                                            <th className="px-6 py-3 text-xs text-center">Номер заказа</th>
+                                            {/* <th className="px-6 py-3 text-xs text-center">Номер заказа</th> */}
                                             <th className="px-6 py-3 text-xs text-center">Клиент</th>
                                             <th className="px-6 py-3 text-xs text-center">Статус</th>
                                             <th className="px-6 py-3 text-xs text-center">Дата заказа</th>
@@ -274,10 +274,10 @@ export function OrderFeedView() {
                                             return (
                                                 <tr key={order.order_id} onClick={() => viewOrderDetails(order.order_id)} className="hover:bg-gray-700 cursor-pointer">
                                                     <td className="px-6 py-4 text-xs text-center">{order.order_id}</td>
-                                                    <td className="px-6 py-4 text-xs text-center">{order.order_number || '-'}</td>
-                                                    <td className="px-6 py-4 text-xs text-center">{order.order_contragent || '-'}</td>
+                                                    {/* <td className="px-6 py-4 text-xs text-center">{order.order_number || '-'}</td> */}
+                                                    <td className="px-6 py-4 text-xs text-center">{order.order_contragent_name || '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{getReadableStatus(order.order_status) || '-'}</td>
-                                                    <td className="px-6 py-4 text-xs text-center">{order.order_add_date || '-'}</td>
+                                                    <td className="px-6 py-4 text-xs text-center">{(order.order_add_date && order.order_add_time) ? `${order.order_add_date} ${order.order_add_time}` : '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{order.products ? order.products.length : '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{sum !== '-' ? `${sum} ${currency}` : '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">-</td>
