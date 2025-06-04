@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { DASHBOARD_PAGES } from "@/config/pages-url.config";
 import axios from 'axios';
 import Loader from '@/components/ui/Loader/loader';
+import Tooltip from '@mui/material/Tooltip';
 
 export function OrderFeedView() {
     const defaultOrders = [
@@ -28,6 +29,9 @@ export function OrderFeedView() {
     const [supplierFilter, setSupplierFilter] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [sortColumn, setSortColumn] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [totalPages, setTotalPages] = useState(1);
     const ordersPerPage = 10;
 
     const router = useRouter();
@@ -58,15 +62,67 @@ export function OrderFeedView() {
         { id: 'payment_received', name: 'Оплата получена' }
     ];
 
+    // Функция для сортировки
+    const handleSort = (column: string) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    const getSortedOrders = (ordersToSort: any[]) => {
+        if (!sortColumn) return ordersToSort;
+
+        return [...ordersToSort].sort((a, b) => {
+            let aValue = a[sortColumn];
+            let bValue = b[sortColumn];
+
+            // Специальная обработка для дат
+            if (sortColumn === 'order_add_date') {
+                try {
+                    // Преобразуем даты в объекты Date
+                    const [dayA, monthA, yearA] = (a.order_add_date || '').split('.');
+                    const [dayB, monthB, yearB] = (b.order_add_date || '').split('.');
+                    
+                    const dateA = new Date(
+                        `${yearA}-${monthA}-${dayA}T${a.order_add_time || '00:00'}`
+                    );
+                    
+                    const dateB = new Date(
+                        `${yearB}-${monthB}-${dayB}T${b.order_add_time || '00:00'}`
+                    );
+
+                    return sortDirection === 'asc' 
+                        ? dateA.getTime() - dateB.getTime()
+                        : dateB.getTime() - dateA.getTime();
+                } catch (error) {
+                    console.error('Error parsing date:', error);
+                    return 0;
+                }
+            }
+
+            // Специальная обработка для числовых значений
+            if (sortColumn === 'total_sum' || sortColumn === 'products_length') {
+                aValue = parseFloat(aValue) || 0;
+                bValue = parseFloat(bValue) || 0;
+            }
+
+            if (aValue === bValue) return 0;
+            
+            const compareResult = aValue > bValue ? 1 : -1;
+            return sortDirection === 'asc' ? compareResult : -compareResult;
+        });
+    };
+
     useEffect(() => {
         const savedState = localStorage.getItem('orderFeedState');
-        const savedOrders = localStorage.getItem('orders');
 
         // Инициализация дат с учетом часового пояса
         const now = new Date();
         const lastWeekStart = subDays(now, 7);
         
-        // Приводим к UTC для унификации формата на всех серверах
         const formattedStartDate = format(lastWeekStart, 'yyyy-MM-dd');
         const formattedEndDate = format(now, 'yyyy-MM-dd');
 
@@ -75,12 +131,8 @@ export function OrderFeedView() {
                 const parsed = JSON.parse(savedState);
                 const { start, end, search, status, supplier } = parsed;
                 
-                // Проверяем, валидны ли даты
-                const validStart = start && /^\d{4}-\d{2}-\d{2}$/.test(start) ? start : formattedStartDate;
-                const validEnd = end && /^\d{4}-\d{2}-\d{2}$/.test(end) ? end : formattedEndDate;
-                
-                setStartDate(validStart);
-                setEndDate(validEnd);
+                setStartDate(start || formattedStartDate);
+                setEndDate(end || formattedEndDate);
                 setSearchValue(search || '');
                 setStatusFilter(status || 'Все');
                 setSupplierFilter(supplier || null);
@@ -92,14 +144,6 @@ export function OrderFeedView() {
         } else {
             setStartDate(formattedStartDate);
             setEndDate(formattedEndDate);
-        }
-
-        if (savedOrders) {
-            try {
-                setOrders(JSON.parse(savedOrders));
-            } catch (e) {
-                console.error('Error parsing saved orders:', e);
-            }
         }
     }, []);
 
@@ -124,22 +168,14 @@ export function OrderFeedView() {
 
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const inputDate = e.target.value;
-        // Проверяем, является ли введенная дата валидной
-        if (/^\d{4}-\d{2}-\d{2}$/.test(inputDate)) {
-            setStartDate(inputDate);
-        } else {
-            console.warn('Invalid date format for start date:', inputDate);
-        }
+        setStartDate(inputDate);
+        setCurrentPage(1); // Сброс на первую страницу при изменении фильтра
     };
 
     const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const inputDate = e.target.value;
-        // Проверяем, является ли введенная дата валидной
-        if (/^\d{4}-\d{2}-\d{2}$/.test(inputDate)) {
-            setEndDate(inputDate);
-        } else {
-            console.warn('Invalid date format for end date:', inputDate);
-        }
+        setEndDate(inputDate);
+        setCurrentPage(1); // Сброс на первую страницу при изменении фильтра
     };
 
     const viewOrderDetails = (id: string) => {
@@ -149,21 +185,25 @@ export function OrderFeedView() {
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
             (order.order_id && order.order_id.toString().includes(searchValue)) ||
-            (order.order_contragent && order.order_contragent.toString().toLowerCase().includes(searchValue.toLowerCase()));
-        const matchesStatus = !statusFilter || statusFilter === 'Все';
-        const matchesSupplier = !supplierFilter || order.order_contragent === supplierFilter;
+            (order.order_contragent_name && order.order_contragent_name.toString().toLowerCase().includes(searchValue.toLowerCase()));
+        
+        const matchesStatus = !statusFilter || statusFilter === 'Все' || getReadableStatus(order.order_status) === statusFilter;
+        const matchesSupplier = !supplierFilter || order.order_contragent_name === supplierFilter;
         
         let matchesDateRange = true;
         if (startDate && endDate) {
             try {
-                // Создаем даты без учета времени, только год-месяц-день
-                const orderDateStr = order.date.split('T')[0]; // Берем только дату, отбрасываем время
-                const orderDate = new Date(orderDateStr);
-                
+                // Преобразуем дату заказа в объект Date
+                const [orderDay, orderMonth, orderYear] = (order.order_add_date || '').split('.');
+                const orderDate = new Date(
+                    `${orderYear}-${orderMonth}-${orderDay}T${order.order_add_time || '00:00'}`
+                );
+
+                // Преобразуем даты фильтра в объекты Date
                 const start = new Date(startDate);
                 const end = new Date(endDate);
                 
-                // Устанавливаем время начала дня для стартовой даты и конец дня для конечной даты
+                // Устанавливаем время начала и конца дня
                 start.setHours(0, 0, 0, 0);
                 end.setHours(23, 59, 59, 999);
                 
@@ -177,12 +217,29 @@ export function OrderFeedView() {
         return matchesSearch && matchesStatus && matchesSupplier && matchesDateRange;
     });
 
-    // Пагинация
-    const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
-    const paginatedOrders = filteredOrders.slice((currentPage - 1) * ordersPerPage, currentPage * ordersPerPage);
+    // Получаем уникальный список поставщиков из данных
+    const uniqueSuppliers = React.useMemo(() => {
+        const suppliers = new Set<string>();
+        orders.forEach(order => {
+            if (order.order_contragent_name) {
+                suppliers.add(order.order_contragent_name);
+            }
+        });
+        return Array.from(suppliers).sort();
+    }, [orders]);
 
+    // Пагинация
     const handlePrevPage = () => setCurrentPage(p => Math.max(1, p - 1));
     const handleNextPage = () => setCurrentPage(p => Math.min(totalPages, p + 1));
+
+    useEffect(() => {
+        const totalItems = filteredOrders.length;
+        const calculatedTotalPages = Math.ceil(totalItems / ordersPerPage);
+        setTotalPages(calculatedTotalPages);
+        if (currentPage > calculatedTotalPages) {
+            setCurrentPage(1);
+        }
+    }, [filteredOrders, currentPage, ordersPerPage]);
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -194,7 +251,7 @@ export function OrderFeedView() {
                                 <Button
                                     key={status.id}
                                     onClick={() => setStatusFilter(status.name)}
-                                    className={`px-4 py-2 ${statusFilter === status.name || (status.name === 'Все' && !statusFilter) ? 'bg-blue-500' : 'bg-gray-700'} text-white rounded-md`}
+                                    className={`px-4 py-2 ${statusFilter === status.name ? 'bg-blue-500' : 'bg-gray-700'} text-white rounded-md`}
                                 >
                                     {status.name}
                                 </Button>
@@ -226,10 +283,11 @@ export function OrderFeedView() {
                                 className="px-4 py-2 border border-gray-600 rounded-md bg-gray-700 text-white"
                             >
                                 <option value="">Все поставщики</option>
-                                <option value="EXIST">EXIST</option>
-                                <option value="EMEX">EMEX</option>
-                                <option value="ZZAP">ZZAP</option>
-                                <option value="AUTODOC">AUTODOC</option>
+                                {uniqueSuppliers.map(supplier => (
+                                    <option key={supplier} value={supplier}>
+                                        {supplier}
+                                    </option>
+                                ))}
                             </select>
                             <Button
                                 onClick={() => router.push(DASHBOARD_PAGES.ORDERDETAILVIEW)}
@@ -248,33 +306,76 @@ export function OrderFeedView() {
                                     <table className="min-w-full divide-y divide-gray-700">
                                         <thead className="bg-gray-700">
                                         <tr>
-                                            <th className="px-6 py-3 text-xs text-center">id</th>
-                                            {/* <th className="px-6 py-3 text-xs text-center">Номер заказа</th> */}
-                                            <th className="px-6 py-3 text-xs text-center">Клиент</th>
-                                            <th className="px-6 py-3 text-xs text-center">Статус</th>
-                                            <th className="px-6 py-3 text-xs text-center">Дата заказа</th>
-                                            <th className="px-6 py-3 text-xs text-center">Кол-во артикулов</th>
-                                            <th className="px-6 py-3 text-xs text-center">Сумма</th>
+                                            <th 
+                                                onClick={() => handleSort('order_id')}
+                                                className="px-6 py-3 text-xs text-center cursor-pointer hover:bg-gray-600"
+                                            >
+                                                <Tooltip title="Сортировка по ID" arrow>
+                                                    <span>ID {sortColumn === 'order_id' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                                </Tooltip>
+                                            </th>
+                                            <th 
+                                                onClick={() => handleSort('order_contragent_name')}
+                                                className="px-6 py-3 text-xs text-center cursor-pointer hover:bg-gray-600"
+                                            >
+                                                <Tooltip title="Сортировка по клиенту" arrow>
+                                                    <span>Клиент {sortColumn === 'order_contragent_name' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                                </Tooltip>
+                                            </th>
+                                            <th 
+                                                onClick={() => handleSort('order_status')}
+                                                className="px-6 py-3 text-xs text-center cursor-pointer hover:bg-gray-600"
+                                            >
+                                                <Tooltip title="Сортировка по статусу" arrow>
+                                                    <span>Статус {sortColumn === 'order_status' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                                </Tooltip>
+                                            </th>
+                                            <th 
+                                                onClick={() => handleSort('order_add_date')}
+                                                className="px-6 py-3 text-xs text-center cursor-pointer hover:bg-gray-600"
+                                            >
+                                                <Tooltip title="Сортировка по дате" arrow>
+                                                    <span>Дата заказа {sortColumn === 'order_add_date' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                                </Tooltip>
+                                            </th>
+                                            <th 
+                                                onClick={() => handleSort('products_length')}
+                                                className="px-6 py-3 text-xs text-center cursor-pointer hover:bg-gray-600"
+                                            >
+                                                <Tooltip title="Сортировка по количеству артикулов" arrow>
+                                                    <span>Кол-во артикулов {sortColumn === 'products_length' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                                </Tooltip>
+                                            </th>
+                                            <th 
+                                                onClick={() => handleSort('total_sum')}
+                                                className="px-6 py-3 text-xs text-center cursor-pointer hover:bg-gray-600"
+                                            >
+                                                <Tooltip title="Сортировка по сумме" arrow>
+                                                    <span>Сумма {sortColumn === 'total_sum' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                                </Tooltip>
+                                            </th>
                                             <th className="px-6 py-3 text-xs text-center">Номер УПД</th>
                                         </tr>
                                         </thead>
                                         <tbody className="bg-gray-800 divide-y divide-gray-700">
-                                        {paginatedOrders.map((order) => {
+                                        {getSortedOrders(filteredOrders)
+                                            .slice((currentPage - 1) * ordersPerPage, currentPage * ordersPerPage)
+                                            .map((order) => {
                                             // Считаем сумму заказа по всем товарам
                                             let sum = '-';
                                             let currency = '';
                                             if (order.products && Array.isArray(order.products) && order.products.length > 0) {
-                                                sum = order.products.reduce((acc: number, p: any) => {
+                                                const totalSum = order.products.reduce((acc: number, p: any) => {
                                                     const price = parseFloat(p.order_product_price) || 0;
                                                     const amount = parseFloat(p.order_product_amount) || 0;
-                                                    return acc + price * amount;
+                                                    return acc + (price * amount);
                                                 }, 0);
+                                                sum = totalSum.toFixed(2);
                                                 currency = order.products[0]?.order_product_currency || '';
                                             }
                                             return (
                                                 <tr key={order.order_id} onClick={() => viewOrderDetails(order.order_id)} className="hover:bg-gray-700 cursor-pointer">
                                                     <td className="px-6 py-4 text-xs text-center">{order.order_id}</td>
-                                                    {/* <td className="px-6 py-4 text-xs text-center">{order.order_number || '-'}</td> */}
                                                     <td className="px-6 py-4 text-xs text-center">{order.order_contragent_name || '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{getReadableStatus(order.order_status) || '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{(order.order_add_date && order.order_add_time) ? `${order.order_add_date} ${order.order_add_time}` : '-'}</td>

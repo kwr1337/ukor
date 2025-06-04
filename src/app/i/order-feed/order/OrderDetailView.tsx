@@ -67,8 +67,6 @@ export function OrderDetailView() {
 	const [shipping, setShipping] = useState<string>('Самовывоз')
 	const [currency, setCurrency] = useState<string>('RUB')
 	const [barcode, setBarcode] = useState<string>('')
-	const [inStockCount, setInStockCount] = useState<number>(0)
-	const [outOfStockCount, setOutOfStockCount] = useState<number>(0)
 	const [clientName, setClientName] = useState<string>('ООО Экзист')
 	const [upd, setUpd] = useState<string>('2132332')
 	const [totalSum, setTotalSum] = useState<string>('288 000')
@@ -125,32 +123,13 @@ export function OrderDetailView() {
 		}
 	}, [orderId]);
 
-	useEffect(() => {
-		// Подсчет количества товаров в наличии и не в наличии
-		let inStock = 0;
-		let outOfStock = 0;
-		
-		orderItems.forEach(item => {
-			if (item.quantity && parseInt(item.quantity) > 0) {
-				inStock++;
-			} else {
-				outOfStock++;
-			}
-		});
-		
-		setInStockCount(inStock);
-		setOutOfStockCount(outOfStock);
-	}, [orderItems]);
-
 	// Загрузка остатков склада
 	useEffect(() => {
 		const fetchLeftovers = async () => {
 			try {
 				setLoadingLeftovers(true);
 				const url = `/api/warehouses/get_warehouses.php`;
-				// const response = await axios.get(`${API_BASE_URL}/API/warehouses/get_warehouses.php`);
 				const response = await axios.get(url);
-				// Собираем все nomenclature из всех складов
 				const nomenclature = Array.isArray(response.data)
 					? response.data.flatMap((warehouse: any) => warehouse.nomenclature || [])
 					: [];
@@ -279,16 +258,6 @@ export function OrderDetailView() {
 
 	if (!order || loadingLeftovers) return <div>Загрузка...</div>;
 
-	// Данные для блока информации
-	const info = {
-		id: order.order_id || '-',
-		sum: order.order_total || '-',
-		client: order.order_contragent || '-',
-		upl: order.upd_number || '-',
-		articles: order.products ? order.products.length : '-',
-		created: getReadableCreator(order.order_created_by) || '-'
-	};
-
 	const productsWithStock = (order.products || []).map((product: any) => {
 		const article = (product.order_product_article || '').replace(/\s/g, '');
 		const found = leftovers.find((item: any) => (item.product_article || '').replace(/\s/g, '') === article);
@@ -298,28 +267,43 @@ export function OrderDetailView() {
 			...product,
 			sklad_status: found ? 'В наличии' : 'Отказ',
 			sklad_cost: found ? found.product_price : '-',
+			sklad_amount: found ? found.product_amount : '0',
 			price: product.order_product_price || '-',
 			amount: product.order_product_amount || '-',
-			total: orderPrice * orderAmount,
+			total: (orderPrice * orderAmount).toFixed(2),
 			currency: product.order_product_currency || '-',
 		};
 	});
 
 	type ProductWithStock = typeof productsWithStock[number];
-	const totalOrderSum = productsWithStock.reduce((sum: number, p: ProductWithStock) => sum + (typeof p.total === 'number' ? p.total : 0), 0);
+	const totalOrderSum = productsWithStock.reduce((sum: number, p: ProductWithStock) => {
+		const total = typeof p.total === 'string' ? parseFloat(p.total) : 0;
+		return sum + total;
+	}, 0).toFixed(2);
 	const orderCurrency = productsWithStock[0]?.currency || '-';
+
+	// Данные для блока информации
+	const info = {
+		id: order.order_id || '-',
+		sum: `${totalOrderSum} ${orderCurrency}`,
+		client: order.order_contragent_name || '-',
+		upl: order.upd_number || '-',
+		articles: order.products ? order.products.length : '-',
+		created: getReadableCreator(order.order_created_by) || '-'
+	};
 
 	// Получаем список отказов
 	const rejectedProducts = productsWithStock
 		.filter((product: ProductWithStock) => product.sklad_status === 'Отказ')
 		.map((product: ProductWithStock) => ({
-			orderId: order.order_id,
+			orderId: product.order_number,
 			name: product.order_product_name,
 			code: product.order_product_article,
 			brand: product.order_product_brand,
 			quantity: product.amount,
 			expectedDate: product.order_expected_date,
-			barcode: product.order_product_bar_code
+			barcode: product.order_product_bar_code,
+			sklad_amount: '0'  // Добавляем явное указание остатка
 		}));
 
 	return (
@@ -359,7 +343,9 @@ export function OrderDetailView() {
 
 					{/* Таблица товаров - Состав заказа */}
 					<div className='bg-gray-800 rounded-lg p-4 shadow-md'>
-						<h2 className='font-semibold text-xl mb-4'>Состав заказа (На складе {productsWithStock.filter((p: ProductWithStock) => p.sklad_status === 'В наличии').length})</h2>
+						<h2 className='font-semibold text-xl mb-4'>
+							Состав заказа (На складе {productsWithStock.filter((p: ProductWithStock) => p.sklad_status === 'В наличии').length})
+						</h2>
 						<div className="overflow-x-auto max-w-full">
 							<table className='min-w-full divide-y divide-gray-700 table-fixed'>
 								<thead className='bg-gray-700'>
@@ -369,34 +355,34 @@ export function OrderDetailView() {
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Артикул</th>
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Бренд</th>
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Кол-во</th>
-									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Цена</th>
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Остаток</th>
+									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Цена</th>
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Валюта</th>
+									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Себест.</th>
+									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Итого</th>
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Ожид. дата</th>
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Штрихкод</th>
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Номер ГТД</th>
-									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Себест.</th>
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Прайс</th>
-									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>Итого</th>
 								</tr>
 								</thead>
 								<tbody className='bg-gray-800 divide-y divide-gray-700'>
 								{productsWithStock.map((product: ProductWithStock, index: number) => (
 									<tr key={index}>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_id || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_number || '-'}</td>
 										<td className='px-2 py-2 text-xs'>{product.order_product_name || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_article || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_brand || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.amount}</td>
+										<td className={`px-2 py-2 text-xs whitespace-nowrap`}>{product.sklad_amount}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.price}</td>
-										<td className={`px-2 py-2 text-xs whitespace-nowrap ${product.sklad_status === 'В наличии' ? 'text-green-400' : 'text-red-400'}`}>{product.sklad_status}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.currency}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.sklad_cost}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.total} {product.currency}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_expected_date || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_bar_code || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.order_product_gtd || '-'}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.sklad_cost}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.price}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{product.total}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{'-'}</td>
 									</tr>
 								))}
 								</tbody>
@@ -406,7 +392,9 @@ export function OrderDetailView() {
 
 					{/* Отказы */}
 					<div className='bg-gray-800 rounded-lg p-4 shadow-md'>
-						<h2 className='font-semibold text-xl mb-4'>Отказы ({outOfStockCount})</h2>
+						<h2 className='font-semibold text-xl mb-4'>
+							Отказы ({rejectedProducts.length})
+						</h2>
 						<div className="overflow-x-auto max-w-full">
 							<table className='min-w-full divide-y divide-gray-700 table-fixed'>
 								<thead className='bg-gray-700'>
@@ -438,15 +426,15 @@ export function OrderDetailView() {
 								</tr>
 								</thead>
 								<tbody className='bg-gray-800 divide-y divide-gray-700'>
-								{rejectedProducts.map((item: Item, index: number) => (
+								{rejectedProducts.map((item: any, index: number) => (
 									<tr key={index}>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.orderId || orderNumber}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.orderId}</td>
 										<td className='px-2 py-2 text-xs'>{item.name}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.code}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.brand}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.quantity}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.expectedDate}</td>
-										<td className='px-2 py-2 text-xs whitespace-nowrap'>Отсутствует</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.expectedDate || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.sklad_amount}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.barcode}</td>
 									</tr>
 								))}
