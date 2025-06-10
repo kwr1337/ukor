@@ -37,17 +37,40 @@ export function OrderFeedView() {
     const router = useRouter();
 
     // Функция для преобразования статуса из бэкенда в читаемый формат
-    const getReadableStatus = (status: string) => {
-        const statusMap: { [key: string]: string } = {
+    const getReadableStatus = (order) => {
+        const statusMap = {
             'new': 'Новая',
             'accepted': 'Принят',
             'sent_to_warehouse': 'Отправлен на склад',
             'sent_to_client': 'Отправлен клиенту',
             'fulfilled': 'Выполнен',
             'upd_sent': 'УПД отправлен',
-            'payment_received': 'Оплата получена'
+            'payment_received': 'Оплата получена',
+            'принят': 'Принят',
+            'отправлен на склад': 'Отправлен на склад',
+            'отправлен клиенту': 'Отправлен клиенту'
         };
-        return statusMap[status] || status;
+
+        if (order.statuses && Array.isArray(order.statuses) && order.statuses.length > 0) {
+            // Сортируем статусы по дате и времени
+            const sortedStatuses = [...order.statuses].sort((a, b) => {
+                const dateA = new Date(`${a.order_status_add_date} ${a.order_status_add_time}`);
+                const dateB = new Date(`${b.order_status_add_date} ${b.order_status_add_time}`);
+                return dateA.getTime() - dateB.getTime();
+            });
+
+            // Ищем активный статус
+            const activeStatus = sortedStatuses.find(s => s.order_status_active === "1");
+            if (activeStatus) {
+                return statusMap[activeStatus.order_status_status?.toLowerCase()] || activeStatus.order_status_status;
+            } else {
+                // Если нет активного, берем последний по времени
+                const lastStatus = sortedStatuses[sortedStatuses.length - 1];
+                return statusMap[lastStatus.order_status_status?.toLowerCase()] || lastStatus.order_status_status;
+            }
+        }
+        // Если нет массива статусов — fallback
+        return statusMap[order.order_status?.toLowerCase()] || order.order_status;
     };
 
     // Статусы заказов согласно документации
@@ -160,10 +183,24 @@ export function OrderFeedView() {
 
     useEffect(() => {
         setLoading(true);
-        axios.get('/api/orders/get_orders.php')
-            .then(res => setOrders(res.data))
-            .catch(err => console.error('Ошибка загрузки заказов:', err))
-            .finally(() => setLoading(false));
+        const fetchOrders = () => {
+            axios.get('/api/orders/get_orders.php')
+                .then(res => {
+                    console.log('Received orders:', res.data);
+                    setOrders(res.data);
+                })
+                .catch(err => console.error('Ошибка загрузки заказов:', err))
+                .finally(() => setLoading(false));
+        };
+
+        // Первоначальная загрузка
+        fetchOrders();
+
+        // Обновляем каждые 30 секунд
+        const interval = setInterval(fetchOrders, 30000);
+
+        // Очищаем интервал при размонтировании компонента
+        return () => clearInterval(interval);
     }, []);
 
     const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,7 +224,7 @@ export function OrderFeedView() {
             (order.order_id && order.order_id.toString().includes(searchValue)) ||
             (order.order_contragent_name && order.order_contragent_name.toString().toLowerCase().includes(searchValue.toLowerCase()));
         
-        const matchesStatus = !statusFilter || statusFilter === 'Все' || getReadableStatus(order.order_status) === statusFilter;
+        const matchesStatus = !statusFilter || statusFilter === 'Все' || getReadableStatus(order) === statusFilter;
         const matchesSupplier = !supplierFilter || order.order_contragent_name === supplierFilter;
         
         let matchesDateRange = true;
@@ -377,7 +414,7 @@ export function OrderFeedView() {
                                                 <tr key={order.order_id} onClick={() => viewOrderDetails(order.order_id)} className="hover:bg-gray-700 cursor-pointer">
                                                     <td className="px-6 py-4 text-xs text-center">{order.order_id}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{order.order_contragent_name || '-'}</td>
-                                                    <td className="px-6 py-4 text-xs text-center">{getReadableStatus(order.order_status) || '-'}</td>
+                                                    <td className="px-6 py-4 text-xs text-center">{getReadableStatus(order) || '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{(order.order_add_date && order.order_add_time) ? `${order.order_add_date} ${order.order_add_time}` : '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{order.products ? order.products.length : '-'}</td>
                                                     <td className="px-6 py-4 text-xs text-center">{sum !== '-' ? `${sum} ${currency}` : '-'}</td>

@@ -4,6 +4,7 @@ import * as cheerio from 'cheerio'
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import axios from 'axios'
+import { FaArrowLeft } from 'react-icons/fa'
 
 import { Button } from '@/components/ui/buttons/Button'
 import { DASHBOARD_PAGES } from "@/config/pages-url.config";
@@ -74,6 +75,7 @@ export function OrderDetailView() {
 	const [order, setOrder] = useState<any | null>(null)
 	const [leftovers, setLeftovers] = useState<any[]>([])
 	const [loadingLeftovers, setLoadingLeftovers] = useState<boolean>(true)
+	const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false)
 	
 	const searchParams = useSearchParams()
 	const orderId = searchParams?.get('id')
@@ -112,12 +114,98 @@ export function OrderDetailView() {
 		'Оплата получена'
 	]
 
+	// Маппинг статусов с API на отображаемые названия
+	const statusMapping: { [key: string]: string } = {
+		'new': 'Новая',
+		'accepted': 'Принят',
+		'sent_to_warehouse': 'Отправлен на склад',
+		'sent_to_client': 'Отправлен клиенту',
+		'fulfilled': 'Выполнен',
+		'upd_sent': 'УПД отправлен',
+		'payment_received': 'Оплата получена'
+	};
+
+	// Обратный маппинг для отправки на сервер
+	const reverseStatusMapping: { [key: string]: string } = {
+		'Новая': 'new',
+		'Принят': 'accepted',
+		'Отправлен на склад': 'sent_to_warehouse',
+		'Отправлен клиенту': 'sent_to_client',
+		'Выполнен': 'fulfilled',
+		'УПД отправлен': 'upd_sent',
+		'Оплата получена': 'payment_received'
+	};
+
 	useEffect(() => {
 		if (orderId) {
 			axios.get('/api/orders/get_orders.php')
 				.then(res => {
+					console.log('Received orders in OrderDetailView:', res.data);
 					const found = res.data.find((o: any) => o.order_id === orderId);
+					console.log('Found order:', found);
 					setOrder(found || null);
+					
+					// Обработка статусов заказа
+					if (found) {
+						console.log('Processing statuses for order:', found.order_id);
+						if (found.statuses && Array.isArray(found.statuses) && found.statuses.length > 0) {
+							console.log('Order has statuses:', found.statuses);
+							// Сортируем статусы по дате и времени
+							const sortedStatuses = [...found.statuses].sort((a, b) => {
+								const dateA = new Date(`${a.order_status_add_date} ${a.order_status_add_time}`);
+								const dateB = new Date(`${b.order_status_add_date} ${b.order_status_add_time}`);
+								return dateA.getTime() - dateB.getTime();
+							});
+							console.log('Sorted statuses:', sortedStatuses);
+
+							// Находим индекс активного статуса
+							const activeStatusIndex = sortedStatuses.findIndex(s => s.order_status_active === "1");
+							console.log('Active status index:', activeStatusIndex);
+							
+							let relevantStatuses;
+							if (activeStatusIndex === -1) {
+								// Нет активного — показываем все статусы
+								relevantStatuses = sortedStatuses;
+							} else {
+								// До активного включительно
+								relevantStatuses = sortedStatuses.slice(0, activeStatusIndex + 1);
+							}
+							console.log('Relevant statuses:', relevantStatuses);
+							
+							// Проверяем, есть ли статус new в массиве
+							const hasNewStatus = relevantStatuses.some(s => s.order_status_status.toLowerCase() === 'new');
+							console.log('Has new status:', hasNewStatus);
+							
+							// Если нет статуса new, добавляем его из заказа
+							if (!hasNewStatus && found.order_status?.toLowerCase() === 'new') {
+								relevantStatuses.unshift({
+									order_status_status: 'new',
+									order_status_add_date: found.order_add_date,
+									order_status_add_time: found.order_add_time,
+									order_status_active: "0"
+								});
+								console.log('Added new status, updated relevant statuses:', relevantStatuses);
+							}
+							
+							// Преобразуем статусы в нужный формат
+							const formattedStatuses = relevantStatuses.map(status => ({
+								status: statusMapping[status.order_status_status.toLowerCase()] || status.order_status_status,
+								time: status.order_status_add_time,
+								date: status.order_status_add_date
+							}));
+							console.log('Formatted statuses:', formattedStatuses);
+
+							setStatusUpdates(formattedStatuses);
+						} else {
+							console.log('No statuses array or empty array, using order status');
+							// Если массив статусов пустой, используем данные из заказа
+							setStatusUpdates([{
+								status: statusMapping[found.order_status?.toLowerCase()] || 'Новая',
+								time: found.order_add_time || new Date().toLocaleTimeString(),
+								date: found.order_add_date || new Date().toLocaleDateString()
+							}]);
+						}
+					}
 				})
 				.catch(err => console.error('Ошибка загрузки заказа:', err));
 		}
@@ -246,13 +334,89 @@ export function OrderDetailView() {
 	const handleStatusChange = (newStatus: string) => {
 		// Проверяем, что новый статус отличается от текущего
 		if (newStatus !== statusUpdates[statusUpdates.length - 1].status) {
+			setIsUpdatingStatus(true);
 			const oldStatus = statusUpdates[statusUpdates.length - 1].status;
-			updateOrderStatus(newStatus);
 			
-			// Сохраняем запись в историю только если у нас есть orderId
-			if (orderId) {
-				saveHistoryRecord('Статус заказа', 'Изменение статуса', oldStatus, newStatus);
-			}
+			// Получаем английский идентификатор статуса
+			const statusId = reverseStatusMapping[newStatus];
+			
+			axios.post('/api/orders/update_order_status.php', null, {
+				params: {
+					order_id: orderId,
+					status: statusId
+				}
+			})
+				.then(() => {
+					// Обновляем локальное состояние только после успешного ответа
+					const now = new Date();
+					const newStatusUpdate = {
+						status: newStatus,
+						time: now.toLocaleTimeString(),
+						date: now.toLocaleDateString()
+					};
+					setStatusUpdates(prev => [...prev, newStatusUpdate]);
+					
+					// Сохраняем запись в историю только если у нас есть orderId
+					if (orderId) {
+						saveHistoryRecord('Статус заказа', 'Изменение статуса', oldStatus, newStatus);
+					}
+
+					// Обновляем данные заказа
+					return axios.get('/api/orders/get_orders.php');
+				})
+				.then(res => {
+					// Находим обновленный заказ
+					const found = res.data.find((o: any) => o.order_id === orderId);
+					if (found) {
+						setOrder(found);
+						
+						// Обновляем статусы заказа
+						if (found.statuses && found.statuses.length > 0) {
+							// Сортируем статусы по дате и времени
+							const sortedStatuses = [...found.statuses].sort((a, b) => {
+								const dateA = new Date(`${a.order_status_add_date} ${a.order_status_add_time}`);
+								const dateB = new Date(`${b.order_status_add_date} ${b.order_status_add_time}`);
+								return dateA.getTime() - dateB.getTime();
+							});
+
+							// Находим индекс активного статуса
+							const activeStatusIndex = sortedStatuses.findIndex(s => s.order_status_active === "1");
+							
+							let relevantStatuses;
+							if (activeStatusIndex === -1) {
+								// Нет активного — показываем все статусы
+								relevantStatuses = sortedStatuses;
+							} else {
+								// До активного включительно
+								relevantStatuses = sortedStatuses.slice(0, activeStatusIndex + 1);
+							}
+							
+							// Проверяем, есть ли статус new в массиве
+							const hasNewStatus = relevantStatuses.some(s => s.order_status_status.toLowerCase() === 'new');
+							
+							// Если нет статуса new, добавляем его из заказа
+							if (!hasNewStatus && found.order_status?.toLowerCase() === 'new') {
+								relevantStatuses.unshift({
+									order_status_status: 'new',
+									order_status_add_date: found.order_add_date,
+									order_status_add_time: found.order_add_time,
+									order_status_active: "0"
+								});
+							}
+							
+							// Преобразуем статусы в нужный формат
+							const formattedStatuses = relevantStatuses.map(status => ({
+								status: statusMapping[status.order_status_status.toLowerCase()] || status.order_status_status,
+								time: status.order_status_add_time,
+								date: status.order_status_add_date
+							}));
+
+							setStatusUpdates(formattedStatuses);
+						}
+					}
+				})
+				.catch(err => console.error('Ошибка при обновлении статуса:', err))
+				.finally(() => setIsUpdatingStatus(false));
 		}
 	};
 
@@ -295,23 +459,36 @@ export function OrderDetailView() {
 	// Получаем список отказов
 	const rejectedProducts = productsWithStock
 		.filter((product: ProductWithStock) => product.sklad_status === 'Отказ')
-		.map((product: ProductWithStock) => ({
-			orderId: product.order_number,
-			name: product.order_product_name,
-			code: product.order_product_article,
-			brand: product.order_product_brand,
-			quantity: product.amount,
-			expectedDate: product.order_expected_date,
-			barcode: product.order_product_bar_code,
-			sklad_amount: '0'  // Добавляем явное указание остатка
-		}));
+		.map((product: ProductWithStock) => {
+			// Находим оригинальный продукт для получения цены и валюты
+			const originalProduct = (order.products || []).find((p: any) => p.order_product_article === product.order_product_article && p.order_product_name === product.order_product_name);
+			return {
+				orderId: product.order_number,
+				name: product.order_product_name,
+				code: product.order_product_article,
+				brand: product.order_product_brand,
+				quantity: product.amount,
+				expectedDate: product.order_expected_date,
+				barcode: product.order_product_bar_code,
+				sklad_amount: '0',  // Добавляем явное указание остатка
+				price: originalProduct ? originalProduct.order_product_price : '-',
+				currency: originalProduct ? originalProduct.order_product_currency : '-',
+			};
+		});
 
 	return (
 		<div className='p-4'>
 			<div className='flex flex-col md:flex-row gap-6'>
 				<div className='flex-1 space-y-6'>
 					{/* Информация о заказе */}
-					<div className='bg-gray-800 rounded-lg p-4 shadow-md'>
+					<div className='bg-gray-800 rounded-lg p-4 shadow-md relative'>
+						<Button
+							className='absolute top-4 right-4 flex items-center bg-gray-700 text-white px-3 py-1 rounded-md'
+							onClick={() => router.push(DASHBOARD_PAGES.ORDER_FEED)}
+						>
+							<FaArrowLeft className='mr-1' />
+							Назад
+						</Button>
 						<h2 className='font-semibold text-xl mb-4'>Информация о заказе</h2>
 						<div className='grid grid-cols-2 gap-4'>
 							<div>
@@ -337,6 +514,14 @@ export function OrderDetailView() {
 							<div>
 								<p className='text-gray-400'>Создан:</p>
 								<p>{info.created}</p>
+							</div>
+							<div>
+								<p className='text-gray-400'>Дата заказа:</p>
+								<p>{order.order_add_date || '-'}</p>
+							</div>
+							<div>
+								<p className='text-gray-400'>Время заказа:</p>
+								<p>{order.order_add_time || '-'}</p>
 							</div>
 						</div>
 					</div>
@@ -423,6 +608,15 @@ export function OrderDetailView() {
 									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>
 										Штрихкод
 									</th>
+									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>
+										Цена
+									</th>
+									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>
+										Валюта
+									</th>
+									<th className='px-2 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap'>
+										Итого
+									</th>
 								</tr>
 								</thead>
 								<tbody className='bg-gray-800 divide-y divide-gray-700'>
@@ -436,6 +630,9 @@ export function OrderDetailView() {
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.expectedDate || '-'}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.sklad_amount}</td>
 										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.barcode}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.price || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{item.currency || '-'}</td>
+										<td className='px-2 py-2 text-xs whitespace-nowrap'>{(parseFloat(item.quantity) * parseFloat(item.price)).toFixed(2) || '-'}</td>
 									</tr>
 								))}
 								</tbody>
@@ -470,6 +667,11 @@ export function OrderDetailView() {
 					<div className='space-y-2'>
 						<h3 className='font-medium'>Изменить статус:</h3>
 						{(() => {
+							// Проверяем, есть ли статусы
+							if (!statusUpdates || statusUpdates.length === 0) {
+								return null;
+							}
+
 							// Текущий статус
 							const currentStatus = statusUpdates[statusUpdates.length - 1].status;
 							
@@ -508,8 +710,9 @@ export function OrderDetailView() {
 									<Button
 										className='bg-blue-500 text-white px-4 py-2 rounded-md w-full'
 										onClick={() => handleStatusChange(nextStatus!)}
+										disabled={isUpdatingStatus}
 									>
-										{nextStatus}
+										{isUpdatingStatus ? 'Обновление...' : nextStatus}
 									</Button>
 								);
 							} else {
@@ -552,7 +755,7 @@ export function OrderDetailView() {
 					{/* Кнопка перехода к истории изменений */}
 					<Button 
 						className='bg-gray-600 text-white px-4 py-2 rounded-md w-full'
-						onClick={() => router.push(`${DASHBOARD_PAGES.ORDER_FEED}/history/${orderNumber}`)}
+						onClick={() => router.push(`${DASHBOARD_PAGES.ORDER_FEED}/history/${order.order_id}`)}
 					>
 						История изменений
 					</Button>
