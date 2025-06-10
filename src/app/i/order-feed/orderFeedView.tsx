@@ -37,8 +37,8 @@ export function OrderFeedView() {
     const router = useRouter();
 
     // Функция для преобразования статуса из бэкенда в читаемый формат
-    const getReadableStatus = (order) => {
-        const statusMap = {
+    const getReadableStatus = (order: any) => {
+        const statusMap: { [key: string]: string } = {
             'new': 'Новая',
             'accepted': 'Принят',
             'sent_to_warehouse': 'Отправлен на склад',
@@ -52,25 +52,25 @@ export function OrderFeedView() {
         };
 
         if (order.statuses && Array.isArray(order.statuses) && order.statuses.length > 0) {
-            // Сортируем статусы по дате и времени
-            const sortedStatuses = [...order.statuses].sort((a, b) => {
+            const sortedStatuses = [...order.statuses].sort((a: any, b: any) => {
                 const dateA = new Date(`${a.order_status_add_date} ${a.order_status_add_time}`);
                 const dateB = new Date(`${b.order_status_add_date} ${b.order_status_add_time}`);
                 return dateA.getTime() - dateB.getTime();
             });
 
-            // Ищем активный статус
-            const activeStatus = sortedStatuses.find(s => s.order_status_active === "1");
+            const activeStatus = sortedStatuses.find((s: any) => s.order_status_active === "1");
             if (activeStatus) {
-                return statusMap[activeStatus.order_status_status?.toLowerCase()] || activeStatus.order_status_status;
+                const key = activeStatus.order_status_status?.toLowerCase() as string;
+                return statusMap[key] || activeStatus.order_status_status;
             } else {
-                // Если нет активного, берем последний по времени
                 const lastStatus = sortedStatuses[sortedStatuses.length - 1];
-                return statusMap[lastStatus.order_status_status?.toLowerCase()] || lastStatus.order_status_status;
+                const key = lastStatus.order_status_status?.toLowerCase() as string;
+                return statusMap[key] || lastStatus.order_status_status;
             }
         }
         // Если нет массива статусов — fallback
-        return statusMap[order.order_status?.toLowerCase()] || order.order_status;
+        const key = order.order_status?.toLowerCase() as string;
+        return statusMap[key] || order.order_status;
     };
 
     // Статусы заказов согласно документации
